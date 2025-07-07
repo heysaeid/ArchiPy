@@ -73,46 +73,47 @@ def _handle_db_exception(exception: Exception, db_type: str, func_name: str) -> 
     """
     logging.debug(f"Exception in {db_type} atomic block (func: {func_name}): {exception}")
 
-    # Handle specific SQLAlchemy errors
-    if isinstance(exception, OperationalError):
-        if hasattr(exception, "orig") and exception.orig:
-            sqlstate = getattr(exception.orig, "pgcode", None)
-            if sqlstate == "40001":  # Serialization failure
-                raise DatabaseSerializationError(database=db_type) from exception
-            if sqlstate == "40P01":  # Deadlock detected
+
+    if isinstance(exception, BaseError):
+        # Handle specific SQLAlchemy errors
+        if isinstance(exception, OperationalError):
+            if hasattr(exception, "orig") and exception.orig:
+                sqlstate = getattr(exception.orig, "pgcode", None)
+                if sqlstate == "40001":  # Serialization failure
+                    raise DatabaseSerializationError(database=db_type) from exception
+                if sqlstate == "40P01":  # Deadlock detected
+                    raise DatabaseDeadlockError(database=db_type) from exception
+
+            # SQLite-specific errors
+            if "database is locked" in str(exception):
                 raise DatabaseDeadlockError(database=db_type) from exception
 
-        # SQLite-specific errors
-        if "database is locked" in str(exception):
-            raise DatabaseDeadlockError(database=db_type) from exception
+            # Generic operational errors
+            raise DatabaseConnectionError(database=db_type) from exception
 
-        # Generic operational errors
-        raise DatabaseConnectionError(database=db_type) from exception
+        # Handle integrity errors
+        if isinstance(exception, IntegrityError):
+            if hasattr(exception, "orig") and exception.orig:
+                sqlstate = getattr(exception.orig, "pgcode", None)
+                if sqlstate in ("23503", "23505"):  # Foreign key or unique constraint violation
+                    raise DatabaseConstraintError(database=db_type) from exception
+            raise DatabaseIntegrityError(database=db_type) from exception
 
-    # Handle integrity errors
-    if isinstance(exception, IntegrityError):
-        if hasattr(exception, "orig") and exception.orig:
-            sqlstate = getattr(exception.orig, "pgcode", None)
-            if sqlstate in ("23503", "23505"):  # Foreign key or unique constraint violation
-                raise DatabaseConstraintError(database=db_type) from exception
-        raise DatabaseIntegrityError(database=db_type) from exception
+        # Handle timeout errors
+        if isinstance(exception, SQLAlchemyTimeoutError):
+            raise DatabaseTimeoutError(database=db_type) from exception
 
-    # Handle timeout errors
-    if isinstance(exception, SQLAlchemyTimeoutError):
-        raise DatabaseTimeoutError(database=db_type) from exception
+        # Handle other SQLAlchemy errors
+        if isinstance(exception, SQLAlchemyError):
+            if "transaction" in str(exception).lower():
+                raise DatabaseTransactionError(database=db_type) from exception
+            else:
+                raise DatabaseQueryError(database=db_type) from exception
 
-    # Handle other SQLAlchemy errors
-    if isinstance(exception, SQLAlchemyError):
-        if "transaction" in str(exception).lower():
-            raise DatabaseTransactionError(database=db_type) from exception
-        else:
-            raise DatabaseQueryError(database=db_type) from exception
-
-    # Wrap normal exceptions with DatabaseError
-    # Check if the exception is one of our database-specific errors
-    if isinstance(exception, BaseError):
+        # Wrap normal exceptions with DatabaseError
+        # Check if the exception is one of our database-specific errors
         raise exception
-    raise InternalError() from exception
+    raise exception
 
 
 def sqlalchemy_atomic_decorator(
