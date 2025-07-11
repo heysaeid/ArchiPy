@@ -1,4 +1,4 @@
-from typing import Generic, Self, TypeVar
+from typing import Self, Type, TypeVar
 
 from pydantic_settings import (
     BaseSettings,
@@ -32,78 +32,43 @@ from archipy.configs.config_template import (
 )
 from archipy.configs.environment_type import EnvironmentType
 
-"""
-
-Priority :
-            1. pypoject.toml [tool.configs]
-            2. configs.toml or other toml file init
-            3. .env file
-            4. os level environment variable
-            5. class field value
-"""
-R = TypeVar("R")  # Runtime Config
+T = TypeVar("T", bound='BaseConfig')
 
 
-class BaseConfig(BaseSettings, Generic[R]):
+class BaseConfig(BaseSettings):
     """Base configuration class for ArchiPy applications.
 
     This class provides a comprehensive configuration system that loads settings
-    from multiple sources in the following priority order:
+    from multiple sources with a clear priority order. It supports hot-reloading
+    and a global singleton pattern for easy access throughout an application.
 
-    1. pyproject.toml [tool.configs] section
-    2. configs.toml or other specified TOML files
-    3. Environment variables (.env file)
-    4. OS-level environment variables
-    5. Default class field values
+    Configuration Loading Priority (Highest to Lowest):
+    1.  Secret files (e.g., Docker secrets).
+    2.  `pyproject.toml` file (`[tool.configs]` section).
+    3.  A specified `.toml` file (e.g., `configs.toml`).
+    4.  OS-level environment variables.
+    5.  `.env` file.
+    6.  Default values defined in the class fields.
 
     The class implements the Singleton pattern via a global config instance that
     can be set once and accessed throughout the application.
-
-    Attributes:
-        AUTH (AuthConfig): Authentication and security settings
-        DATETIME (DatetimeConfig): Date/time handling configuration
-        ELASTIC (ElasticsearchConfig): Elasticsearch configuration
-        ELASTIC_APM (ElasticsearchAPMConfig): Elasticsearch APM configuration
-        EMAIL (EmailConfig): Email service configuration
-        ENVIRONMENT (EnvironmentType): Application environment (dev, test, prod)
-        FASTAPI (FastAPIConfig): FastAPI framework settings
-        FILE (FileConfig): File handling configuration
-        GRPC (GrpcConfig): gRPC service configuration
-        KAFKA (KafkaConfig): Kafka integration configuration
-        KAVENEGAR (KavenegarConfig): Kavenegar SMS service configuration
-        KEYCLOAK (KeycloakConfig): Keycloak integration configuration
-        MINIO (MinioConfig): MinIO object storage configuration
-        PARSIAN_SHAPARAK (ParsianShaparakConfig): Parsian Shaparak payment gateway configuration
-        POSTGRES_SQLALCHEMY (PostgresSQLAlchemyConfig): PostgreSQL SQLAlchemy configuration
-        PROMETHEUS (PrometheusConfig): Prometheus metrics configuration
-        REDIS (RedisConfig): Redis cache configuration
-        SENTRY (SentryConfig): Sentry error tracking configuration
-        SQLALCHEMY (SQLAlchemyConfig): Database ORM configuration
-        SQLITE_SQLALCHEMY (SqliteSQLAlchemyConfig): SQLite SQLAlchemy configuration
-        STARROCKS_SQLALCHEMY (StarrocksSQLAlchemyConfig): Starrocks SQLAlchemy configuration
 
     Examples:
         >>> from archipy.configs.base_config import BaseConfig
         >>>
         >>> class MyAppConfig(BaseConfig):
-        ...     # Override defaults
-        ...     APP_NAME = "My Application"
-        ...     DEBUG = True
-        ...
-        ...     # Custom configuration
-        ...     FEATURE_FLAGS = {
-        ...         "new_ui": True,
-        ...         "advanced_search": False
-        ...     }
+        ...     APP_NAME: str = "My Application"
+        ...     DEBUG: bool = True
         >>>
-        >>> # Set as global configuration
+        >>> # Set as global configuration at application startup
         >>> config = MyAppConfig()
         >>> BaseConfig.set_global(config)
         >>>
         >>> # Access from anywhere
         >>> from archipy.configs.base_config import BaseConfig
         >>> current_config = BaseConfig.global_config()
-        >>> app_name = current_config.APP_NAME  # "My Application"
+        >>> print(current_config.APP_NAME)
+        "My Application"
     """
 
     model_config = SettingsConfigDict(
@@ -116,40 +81,11 @@ class BaseConfig(BaseSettings, Generic[R]):
         env_ignore_empty=True,
     )
 
-    __global_config: Self | None = None
+    # --- Singleton State Management ---
+    __global_config: T | None = None
+    __config_class_to_reload: Type[T] | None = None
 
-    @classmethod
-    def settings_customise_sources(
-        cls,
-        settings_cls: type[BaseSettings],
-        init_settings: PydanticBaseSettingsSource,
-        env_settings: PydanticBaseSettingsSource,
-        dotenv_settings: PydanticBaseSettingsSource,
-        file_secret_settings: PydanticBaseSettingsSource,
-    ) -> tuple[PydanticBaseSettingsSource, ...]:
-        """Customize the settings sources priority order.
-
-        This method defines the priority order for configuration sources.
-
-        Args:
-            settings_cls: The settings class
-            init_settings: Settings from initialization values
-            env_settings: Settings from environment variables
-            dotenv_settings: Settings from .env file
-            file_secret_settings: Settings from secret files
-
-        Returns:
-            A tuple of configuration sources in priority order
-        """
-        return (
-            file_secret_settings,
-            PyprojectTomlConfigSettingsSource(settings_cls),
-            TomlConfigSettingsSource(settings_cls),
-            env_settings,
-            dotenv_settings,
-            init_settings,
-        )
-
+    # --- Default Configuration Templates ---
     AUTH: AuthConfig = AuthConfig()
     DATETIME: DatetimeConfig = DatetimeConfig()
     ELASTIC: ElasticsearchConfig = ElasticsearchConfig()
@@ -172,48 +108,87 @@ class BaseConfig(BaseSettings, Generic[R]):
     POSTGRES_SQLALCHEMY: PostgresSQLAlchemyConfig = PostgresSQLAlchemyConfig()
     SQLITE_SQLALCHEMY: SQLiteSQLAlchemyConfig = SQLiteSQLAlchemyConfig()
 
-    def customize(self) -> None:
-        """Customize configuration after loading.
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: Type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Customize the settings sources priority order."""
+        return (
+            file_secret_settings,
+            PyprojectTomlConfigSettingsSource(settings_cls),
+            TomlConfigSettingsSource(settings_cls),
+            env_settings,
+            dotenv_settings,
+            init_settings,
+        )
 
-        This method can be overridden in subclasses to perform
-        custom configuration modifications after loading settings.
+    def customize(self) -> None:
+        """
+        Customize configuration after loading.
+
+        This method can be overridden in subclasses to perform custom
+        configuration modifications after loading settings.
         """
         self.ELASTIC_APM.ENVIRONMENT = self.ENVIRONMENT
 
     @classmethod
-    def global_config(cls) -> Self:
+    def global_config(cls) -> T:
         """Retrieves the global configuration instance.
 
         Returns:
-            Self: The global configuration instance.
+            T: The global configuration instance, correctly typed to the subclass.
 
         Raises:
-            AssertionError: If the global config hasn't been set with
-                BaseConfig.set_global()
-
-        Examples:
-            >>> config = BaseConfig.global_config()
-            >>> redis_host = config.REDIS.MASTER_HOST
+            AssertionError: If the global config hasn't been set.
         """
-        config_not_set_error = "You should set global configs with BaseConfig.set_global(MyConfig())"
         if cls.__global_config is None:
-            raise AssertionError(config_not_set_error)
-        return cls.__global_config  # type: ignore[no-any-return]
+            raise AssertionError(
+                "Global config not set. Call BaseConfig.set_global(MyConfig()) first."
+            )
+        return cls.__global_config
 
     @classmethod
-    def set_global(cls, config: R) -> None:
-        """Sets the global configuration instance.
+    def set_global(cls, config: T) -> None:
+        """
+        Sets the global configuration instance and stores its type for reloading.
 
-        This method should be called once during application initialization
-        to set the global configuration that will be used throughout the app.
+        This method should be called once during application initialization.
 
         Args:
-            config (R): The configuration instance to use globally.
-
-        Examples:
-            >>> my_config = MyAppConfig(BaseConfig)
-            >>> BaseConfig.set_global(my_config)
+            config (T): The configuration instance to use globally.
         """
         if hasattr(config, "customize") and callable(config.customize):
             config.customize()
         cls.__global_config = config
+        cls.__config_class_to_reload = type(config)
+
+    @classmethod
+    def reload(cls) -> None:
+        """Dynamically reloads the global configuration from all sources.
+
+        This method creates a new instance of the registered configuration class,
+        allowing the application to pick up changes from environment variables or
+        configuration files without needing a restart. It replaces the existing
+        global configuration instance with the newly created one.
+
+        This is particularly useful in dynamic environments for tasks such as
+        updating feature flags, changing log levels, or responding to
+        centralized configuration changes (e.g., from Consul).
+
+        Raises:
+            RuntimeError: If the global configuration has not been set yet via
+                the `set_global()` method, as the class type to reload would
+                be unknown.
+        """
+        if cls.__config_class_to_reload is None:
+            raise RuntimeError("Cannot reload: config was never set with set_global().")
+
+
+        new_instance = cls.__config_class_to_reload()
+        cls.set_global(new_instance)
+
