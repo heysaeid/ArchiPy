@@ -125,6 +125,7 @@ class KeycloakUtils:
             # Add user info to request state
             request.state.user_info = user_info
             request.state.token_info = token_info
+            request.state.user_uuid = user_info.get("sub", None)
             return user_info
 
         return dependency
@@ -230,6 +231,7 @@ class KeycloakUtils:
             # Add user info to request state
             request.state.user_info = user_info
             request.state.token_info = token_info
+            request.state.user_uuid = user_info.get("sub", None)
             return user_info
 
         return dependency
