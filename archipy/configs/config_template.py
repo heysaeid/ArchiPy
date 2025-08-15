@@ -432,8 +432,8 @@ class PostgresSQLAlchemyConfig(SQLAlchemyConfig):
 
         if all([self.USERNAME, self.HOST, self.PORT, self.DATABASE]):
             password_part = f":{self.PASSWORD}" if self.PASSWORD else ""
-            self.POSTGRES_DSN = (
-                f"{self.DRIVER_NAME}://{self.USERNAME}{password_part}@{self.HOST}:{self.PORT}/{self.DATABASE}"
+            self.POSTGRES_DSN = PostgresDsn(
+                url=f"{self.DRIVER_NAME}://{self.USERNAME}{password_part}@{self.HOST}:{self.PORT}/{self.DATABASE}",
             )
         return self
 
