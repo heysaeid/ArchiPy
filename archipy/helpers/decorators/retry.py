@@ -4,7 +4,6 @@ from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from archipy.models.errors import ResourceExhaustedError
-from archipy.models.types.language_type import LanguageType
 
 # Define a type variable for the return type of the decorated function
 F = TypeVar("F", bound=Callable[..., Any])
@@ -16,7 +15,6 @@ def retry_decorator(
     retry_on: tuple[type[Exception], ...] | None = None,
     ignore: tuple[type[Exception], ...] | None = None,
     resource_type: str | None = None,
-    lang: LanguageType = LanguageType.FA,
 ) -> Callable[[F], F]:
     """A decorator that retries a function when it raises an exception.
 
@@ -75,7 +73,7 @@ def retry_decorator(
                         time.sleep(delay)
                     continue
                 return result
-            raise ResourceExhaustedError(resource_type=resource_type, lang=lang)
+            raise ResourceExhaustedError(resource_type=resource_type)
 
         return cast(F, wrapper)
 

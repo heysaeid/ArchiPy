@@ -10,7 +10,7 @@ class NotFoundError(BaseError):
     def __init__(
         self,
         resource_type: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.NOT_FOUND.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -26,7 +26,7 @@ class AlreadyExistsError(BaseError):
     def __init__(
         self,
         resource_type: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.ALREADY_EXISTS.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -43,7 +43,7 @@ class ConflictError(BaseError):
         self,
         resource_type: str | None = None,
         resource_id: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.CONFLICT.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -64,7 +64,7 @@ class ResourceLockedError(BaseError):
         self,
         resource_id: str | None = None,
         lock_owner: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.RESOURCE_LOCKED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -85,7 +85,7 @@ class ResourceBusyError(BaseError):
         self,
         resource_id: str | None = None,
         busy_reason: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.RESOURCE_BUSY.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -104,7 +104,7 @@ class DataLossError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATA_LOSS.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -119,7 +119,7 @@ class InvalidEntityTypeError(BaseError):
         message: str | None = None,
         expected_type: str | None = None,
         actual_type: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_ENTITY_TYPE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -143,7 +143,7 @@ class FileTooLargeError(BaseError):
         file_name: str | None = None,
         file_size: int | None = None,
         max_size: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.FILE_TOO_LARGE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -167,7 +167,7 @@ class InvalidFileTypeError(BaseError):
         file_name: str | None = None,
         file_type: str | None = None,
         allowed_types: list[str] | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_FILE_TYPE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -191,7 +191,7 @@ class QuotaExceededError(BaseError):
         quota_type: str | None = None,
         current_usage: int | None = None,
         quota_limit: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.QUOTA_EXCEEDED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -213,7 +213,7 @@ class ResourceExhaustedError(BaseError):
     def __init__(
         self,
         resource_type: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.RESOURCE_EXHAUSTED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -229,7 +229,7 @@ class StorageError(BaseError):
     def __init__(
         self,
         storage_type: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.STORAGE_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:

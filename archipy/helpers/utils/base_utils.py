@@ -85,6 +85,7 @@ class BaseUtils(ErrorUtils, DatetimeUtils, PasswordUtils, JWTUtils, TOTPUtils, F
     @classmethod
     def validate_iranian_national_code_pattern(cls, national_code: str) -> None:
         """Validates an Iranian National ID number using the official algorithm.
+
         To see how the algorithm works, see http://www.aliarash.com/article/codemeli/codemeli.htm
 
         The algorithm works by:

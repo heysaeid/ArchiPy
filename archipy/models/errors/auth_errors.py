@@ -9,7 +9,7 @@ class UnauthenticatedError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.UNAUTHENTICATED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -22,7 +22,7 @@ class InvalidCredentialsError(BaseError):
     def __init__(
         self,
         username: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_CREDENTIALS.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -37,7 +37,7 @@ class TokenExpiredError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.TOKEN_EXPIRED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -49,7 +49,7 @@ class InvalidTokenError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_TOKEN.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -62,7 +62,7 @@ class SessionExpiredError(BaseError):
     def __init__(
         self,
         session_id: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.SESSION_EXPIRED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -77,7 +77,7 @@ class PermissionDeniedError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.PERMISSION_DENIED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -91,7 +91,7 @@ class AccountLockedError(BaseError):
         self,
         username: str | None = None,
         lockout_duration: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.ACCOUNT_LOCKED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -112,7 +112,7 @@ class AccountDisabledError(BaseError):
         self,
         username: str | None = None,
         reason: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.ACCOUNT_DISABLED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -133,7 +133,7 @@ class InvalidVerificationCodeError(BaseError):
         self,
         code: str | None = None,
         remaining_attempts: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_VERIFICATION_CODE.value,
         additional_data: dict | None = None,
     ) -> None:

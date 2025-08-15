@@ -69,6 +69,11 @@ lint: ## Run all linters
 	$(PYTHON) ruff check --config pyproject.toml  $(PYTHON_FILES)
 	$(PYTHON) mypy --config-file pyproject.toml $(PYTHON_FILES)
 
+.PHONY: security
+security: ## Run security scan with Bandit
+	@echo "${BLUE}Running security scan...${NC}"
+	$(PYTHON) bandit -c pyproject.toml -r archipy/ -f json -o bandit-report.json || true
+
 .PHONY: behave
 behave: ## Run tests with behave
 	@echo "${BLUE}Running tests...${NC}"
@@ -129,7 +134,7 @@ pre-commit: ## Run pre-commit hooks
 	$(PRE_COMMIT) run --all-files
 
 .PHONY: check
-check: lint test ## Run all checks (linting and tests)
+check: lint security test ## Run all checks (linting, security, and tests)
 
 .PHONY: ci
 ci: ## Run CI pipeline locally
@@ -137,6 +142,7 @@ ci: ## Run CI pipeline locally
 	$(MAKE) clean
 	$(MAKE) install
 	$(MAKE) lint
+	$(MAKE) security
 	$(MAKE) test
 	$(MAKE) build
 

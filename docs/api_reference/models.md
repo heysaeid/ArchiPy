@@ -3,74 +3,71 @@
 The `models` module provides core data structures and types used throughout the application, following clean
 architecture principles.
 
-## DTOs (Data Transfer Objects)
-
-### Base DTOs
-
-Base classes for all DTOs with common functionality.
+## Quick Start
 
 ```python
 from archipy.models.dtos.base_dtos import BaseDTO
-from pydantic import BaseModel
+from archipy.models.entities.sqlalchemy.base_entities import BaseEntity
 
+# Create a DTO
 class UserDTO(BaseDTO):
     id: str
     username: str
     email: str
-    created_at: datetime
+
+# Create an entity
+class User(BaseEntity):
+    __tablename__ = "users"
+    username: str
+    email: str
 ```
 
-::: archipy.models.dtos.base_dtos
-options:
-show_root_heading: true
-show_source: true
+## Core Components
 
-### Email DTOs
+### DTOs (Data Transfer Objects)
 
-DTOs for email-related operations.
+**Base DTOs** - Base classes for all DTOs with common functionality
+**Protobuf DTOs** - DTOs that can be converted to/from Google Protocol Buffer messages
+**Email DTOs** - DTOs for email-related operations
+**Error DTOs** - Standardized error response format
+**Pagination DTO** - Handles pagination parameters for queries
+**Range DTOs** - Handles range-based queries (integer, date, datetime)
+**Search Input DTO** - Standardized search input format
+**Sort DTO** - Handles sorting parameters
 
-```python
-from archipy.models.dtos.email_dtos import EmailAttachmentDTO
+### Entities
 
-attachment = EmailAttachmentDTO(
-    filename="document.pdf",
-    content_type="application/pdf",
-    content=b"..."
-)
-```
+**Base Entities** - Base classes for SQLAlchemy entities with common functionality
+**Update Tracking** - Entities with automatic update timestamp tracking
+**Soft Deletion** - Entities with soft deletion support
+**Admin Tracking** - Entities with admin user tracking
+**Manager Tracking** - Entities with manager user tracking
 
-::: archipy.models.dtos.email_dtos
-options:
-show_root_heading: true
-show_source: true
+### Errors
 
-### Error DTOs
+**Base Error** - Base class for all custom exceptions
+**Auth Errors** - Authentication and authorization errors
+**Business Errors** - Business logic violation errors
+**Database Errors** - Database operation errors
+**Network Errors** - Network communication errors
+**Resource Errors** - Resource not found or access errors
+**System Errors** - System-level errors
+**Validation Errors** - Data validation errors
 
-Standardized error response format.
+### Types
 
-```python
-from archipy.models.dtos.error_dto import ErrorDetailDTO
+**Base Types** - Common type definitions
+**Email Types** - Email-related type definitions
+**Error Message Types** - Error message type definitions
+**Language Type** - Language enumeration
+**Sort Order Type** - Sort order enumeration
+**Time Interval Unit Type** - Time interval unit enumeration
 
-error = ErrorDetailDTO(
-    code="USER_NOT_FOUND",
-    message_en="User not found",
-)
-```
+## Examples
 
-::: archipy.models.dtos.error_dto
-options:
-show_root_heading: true
-show_source: true
-
-### Pagination DTO
-
-Handles pagination parameters for queries.
-
-```python
-from archipy.models.dtos.pagination_dto import PaginationDTO
-
-pagination = PaginationDTO(
-    page=1,
+For detailed examples, see:
+- [Protobuf DTOs](../examples/models/protobuf_dtos.md)
+- [Error Handling](../examples/error_handling.md)
     page_size=10,
     total_items=100
 )

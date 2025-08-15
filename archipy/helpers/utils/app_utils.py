@@ -39,7 +39,9 @@ class FastAPIExceptionHandler:
         BaseUtils.capture_exception(exception)
         # Default to internal server error if status code is not set
         status_code = (
-            exception.http_status_code if exception.http_status_code else HTTPStatus.INTERNAL_SERVER_ERROR.value
+            exception.http_status_code_value
+            if exception.http_status_code_value
+            else HTTPStatus.INTERNAL_SERVER_ERROR.value
         )
         return JSONResponse(status_code=status_code, content=exception.to_dict())
 
@@ -85,16 +87,8 @@ class FastAPIExceptionHandler:
         Returns:
             JSONResponse: A JSON response containing the validation error details.
         """
-        # Using list comprehension instead of append for better performance
         BaseUtils.capture_exception(exception)
-        errors: list[dict[str, str]] = [
-            {
-                "field": ".".join(str(x) for x in error["loc"]),
-                "message": error["msg"],
-                "value": str(error.get("input", "")),
-            }
-            for error in exception.errors()
-        ]
+        errors = BaseUtils.format_validation_errors(exception)
         return JSONResponse(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             content={"error": "VALIDATION_ERROR", "detail": errors},

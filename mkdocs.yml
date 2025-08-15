@@ -121,6 +121,7 @@ nav:
       - Keycloak: examples/adapters/keycloak.md
       - MinIO: examples/adapters/minio.md
       - Kafka: examples/adapters/kafka.md
+      - Payment Gateways: examples/adapters/parsian_payment.md
     - Helpers:
       - Overview: examples/helpers/index.md
       - Decorators: examples/helpers/decorators.md
@@ -129,6 +130,9 @@ nav:
       - Utils: examples/helpers/utils.md
     - Configuration: examples/config_management.md
     - Testing: examples/bdd_testing.md
+    - Error Handling: examples/error_handling.md
+    - Models:
+      - Protobuf DTOs: examples/models/protobuf_dtos.md
   - Changelog: changelog.md
   - Contributing: contributing.md
   - Architecture: architecture.md

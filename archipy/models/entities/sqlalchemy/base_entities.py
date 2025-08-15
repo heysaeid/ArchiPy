@@ -1,11 +1,9 @@
 from datetime import datetime
 from typing import ClassVar
 
-from sqlalchemy import UUID, Boolean, Column, DateTime, ForeignKey, text
+from sqlalchemy import UUID, Boolean, Column, DateTime, ForeignKey, func
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase, Mapped, Synonym
-
-from archipy.helpers.utils.base_utils import BaseUtils
 
 PK_COLUMN_NAME = "pk_uuid"
 
@@ -23,7 +21,7 @@ class BaseEntity(DeclarativeBase):
     """
 
     __abstract__ = True
-    created_at: Mapped[datetime] = Column(DateTime(), server_default=text("CURRENT_TIMESTAMP"), nullable=False)
+    created_at: Mapped[datetime] = Column(DateTime(), server_default=func.now(), nullable=False)
 
     @classmethod
     def _is_abstract(cls) -> bool:
@@ -121,16 +119,11 @@ class UpdatableMixin:
 
     __abstract__ = True
 
-    @staticmethod
-    def _make_naive(dt: datetime) -> datetime:
-        """Convert a timezone-aware datetime to naive by removing timezone info."""
-        return dt.replace(tzinfo=None) if dt.tzinfo else dt
-
     updated_at = Column(
         DateTime(),
-        server_default=text("CURRENT_TIMESTAMP"),
+        server_default=func.now(),
         nullable=False,
-        onupdate=lambda: UpdatableMixin._make_naive(BaseUtils.get_datetime_now()),
+        onupdate=func.now(),
     )
 
 

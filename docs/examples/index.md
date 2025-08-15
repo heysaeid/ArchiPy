@@ -28,6 +28,10 @@ This section contains practical examples of using ArchiPy components.
 
 - [BDD Testing](bdd_testing.md)
 
+## Models
+
+- [Protobuf DTOs](models/protobuf_dtos.md)
+
 ## Error Handling
 
 - [Error Handling Examples](error_handling.md)

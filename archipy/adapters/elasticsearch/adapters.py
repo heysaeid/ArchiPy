@@ -52,7 +52,7 @@ class ElasticsearchAdapter(ElasticsearchPort):
         if configs.API_KEY and configs.API_SECRET:
             api_key = ((configs.API_KEY, configs.API_SECRET),)
         elif configs.HTTP_USER_NAME and configs.HTTP_PASSWORD:
-            basic_auth = ((configs.HTTP_USER_NAME, configs.HTTP_PASSWORD),)
+            basic_auth = (configs.HTTP_USER_NAME, configs.HTTP_PASSWORD.get_secret_value())
 
         return Elasticsearch(
             hosts=configs.HOSTS,
@@ -293,7 +293,7 @@ class AsyncElasticsearchAdapter(AsyncElasticsearchPort):
         if configs.API_KEY and configs.API_SECRET:
             api_key = (configs.API_KEY, configs.API_SECRET)
         elif configs.HTTP_USER_NAME and configs.HTTP_PASSWORD:
-            basic_auth = (configs.HTTP_USER_NAME, configs.HTTP_PASSWORD)
+            basic_auth = (configs.HTTP_USER_NAME, configs.HTTP_PASSWORD.get_secret_value())
 
         return AsyncElasticsearch(
             hosts=configs.HOSTS,

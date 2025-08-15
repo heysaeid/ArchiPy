@@ -10,7 +10,7 @@ class InvalidArgumentError(BaseError):
     def __init__(
         self,
         argument_name: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_ARGUMENT.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -27,7 +27,7 @@ class InvalidFormatError(BaseError):
         self,
         format_type: str | None = None,
         expected_format: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_FORMAT.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -47,7 +47,7 @@ class InvalidEmailError(BaseError):
     def __init__(
         self,
         email: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_EMAIL.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -63,7 +63,7 @@ class InvalidPhoneNumberError(BaseError):
     def __init__(
         self,
         phone_number: str,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_PHONE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -79,7 +79,7 @@ class InvalidLandlineNumberError(BaseError):
     def __init__(
         self,
         landline_number: str,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_LANDLINE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -95,7 +95,7 @@ class InvalidNationalCodeError(BaseError):
     def __init__(
         self,
         national_code: str,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_NATIONAL_CODE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -111,7 +111,7 @@ class InvalidPasswordError(BaseError):
     def __init__(
         self,
         requirements: list[str] | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_PASSWORD.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -128,7 +128,7 @@ class InvalidDateError(BaseError):
         self,
         date: str | None = None,
         expected_format: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_DATE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -148,7 +148,7 @@ class InvalidUrlError(BaseError):
     def __init__(
         self,
         url: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_URL.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -164,7 +164,7 @@ class InvalidIpError(BaseError):
     def __init__(
         self,
         ip: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_IP.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -180,7 +180,7 @@ class InvalidJsonError(BaseError):
     def __init__(
         self,
         json_data: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_JSON.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -199,7 +199,7 @@ class InvalidTimestampError(BaseError):
         self,
         timestamp: str | None = None,
         expected_format: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_TIMESTAMP.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -219,7 +219,7 @@ class OutOfRangeError(BaseError):
     def __init__(
         self,
         field_name: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.OUT_OF_RANGE.value,
         additional_data: dict | None = None,
     ) -> None:

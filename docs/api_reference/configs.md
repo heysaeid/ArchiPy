@@ -5,20 +5,17 @@
 The configs module provides tools for standardized configuration management and injection, supporting consistent setup
 across services like databases, Redis, and email.
 
-## Installation
+## Quick Start
 
-This module is included in the base ArchiPy installation:
+```python
+from archipy.configs.base_config import BaseConfig
 
-```bash
-# Add ArchiPy to your project
-poetry add archipy
+class AppConfig(BaseConfig):
+    APP_NAME: str = "MyService"
+    DEBUG: bool = False
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
 ```
-
-## Source Code
-
-📁 Location: `archipy/configs/`
-
-🔗 [Browse Source](https://github.com/SyntaxArc/ArchiPy/tree/master/archipy/configs)
 
 ## API Stability
 
@@ -28,76 +25,37 @@ poetry add archipy
 | Config Templates  | 🟢 Stable | Production-ready |
 | Environment Types | 🟢 Stable | Production-ready |
 
-## Examples
-
-For practical examples, see the [Configuration Management Guide](../examples/config_management.md).
-
-## Configuration Classes
-
-### Base Config
-
-Documentation for `archipy.configs.base_config` module.
-
-```python
-from archipy.configs.base_config import BaseConfig
-
-class AppConfig(BaseConfig):
-    APP_NAME: str = "MyService"
-    DEBUG: bool = False
-
-    # Database settings
-    DB_HOST: str = "localhost"
-    DB_PORT: int = 5432
-```
-
-*Includes all members, undocumented members, and shows inheritance.*
-
-### Config Templates
-
-Documentation for `archipy.configs.config_template` module.
-
-```python
-from archipy.configs.config_template import SQLAlchemyConfig
-
-class DatabaseConfig(SQLAlchemyConfig):
-    DB_POOL_SIZE: int = 5
-    DB_POOL_TIMEOUT: int = 30
-```
-
-*Includes all members, undocumented members, and shows inheritance.*
-
-## Key Classes
+## Core Classes
 
 ### BaseConfig
 
-Class: `archipy.configs.base_config.BaseConfig`
+The main configuration class that provides environment variable support, type validation, and global configuration access.
 
-Configures:
-
+**Key Features:**
 - Environment variable support
 - Type validation
 - Global configuration access
 - Nested configuration support
 
-*Includes all members, undocumented members, and shows inheritance.*
-
 ### SQLAlchemyConfig
 
-Class: `archipy.configs.config_template.SQLAlchemyConfig`
+Database configuration template with connection settings, pool configuration, and debug options.
 
-Configures:
-
+**Key Features:**
 - Database connection settings
 - Pool configuration
 - Migration settings
 - Debug options
 
-Attributes:
+## Examples
 
-- `DATABASE`: Database name
-- `DRIVER_NAME`: Database driver name
-- `ECHO`: Whether to log SQL statements
-- `ECHO_POOL`: Whether to log connection pool events
+For practical examples, see the [Configuration Management Guide](../examples/config_management.md).
+
+## Source Code
+
+📁 Location: `archipy/configs/`
+
+🔗 [Browse Source](https://github.com/SyntaxArc/ArchiPy/tree/master/archipy/configs)
 - `ENABLE_FROM_LINTING`: Whether to enable SQL linting
 - `HIDE_PARAMETERS`: Whether to hide SQL parameters in logs
 - `HOST`: Database host

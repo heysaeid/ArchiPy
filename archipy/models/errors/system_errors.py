@@ -9,7 +9,7 @@ class InternalError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INTERNAL_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -22,7 +22,7 @@ class UnknownError(BaseError):
     def __init__(
         self,
         error_code: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.UNKNOWN_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -41,7 +41,7 @@ class AbortedError(BaseError):
         self,
         operation: str | None = None,
         reason: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.ABORTED.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -61,7 +61,7 @@ class DeadlockDetectedError(BaseError):
     def __init__(
         self,
         resource_type: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DEADLOCK.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -79,7 +79,7 @@ class ConfigurationError(BaseError):
     def __init__(
         self,
         config_key: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.CONFIGURATION_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -98,7 +98,7 @@ class UnavailableError(BaseError):
         self,
         service: str | None = None,
         reason: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.UNAVAILABLE.value,
         additional_data: dict | None = None,
     ) -> None:

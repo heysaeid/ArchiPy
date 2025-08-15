@@ -10,7 +10,7 @@ class NetworkError(BaseError):
     def __init__(
         self,
         service: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.NETWORK_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -29,7 +29,7 @@ class ConnectionTimeoutError(BaseError):
         self,
         service: str | None = None,
         timeout: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.CONNECTION_TIMEOUT.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -50,7 +50,7 @@ class ServiceUnavailableError(BaseError):
         self,
         service: str | None = None,
         retry_after: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.SERVICE_UNAVAILABLE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -71,7 +71,7 @@ class GatewayTimeoutError(BaseError):
         self,
         gateway: str | None = None,
         timeout: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.GATEWAY_TIMEOUT.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -91,7 +91,7 @@ class BadGatewayError(BaseError):
     def __init__(
         self,
         gateway: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.BAD_GATEWAY.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -110,7 +110,7 @@ class RateLimitExceededError(BaseError):
         self,
         rate_limit_type: str | None = None,
         retry_after: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.RATE_LIMIT_EXCEEDED.value,
         additional_data: dict | None = None,
     ) -> None:

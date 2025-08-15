@@ -1,4 +1,4 @@
-from typing import Self, Type, TypeVar
+from typing import TypeVar
 
 from pydantic_settings import (
     BaseSettings,
@@ -31,8 +31,9 @@ from archipy.configs.config_template import (
     StarRocksSQLAlchemyConfig,
 )
 from archipy.configs.environment_type import EnvironmentType
+from archipy.models.types import LanguageType
 
-T = TypeVar("T", bound='BaseConfig')
+T = TypeVar("T", bound="BaseConfig")
 
 
 class BaseConfig(BaseSettings):
@@ -83,7 +84,7 @@ class BaseConfig(BaseSettings):
 
     # --- Singleton State Management ---
     __global_config: T | None = None
-    __config_class_to_reload: Type[T] | None = None
+    __config_class_to_reload: type[T] | None = None
 
     # --- Default Configuration Templates ---
     AUTH: AuthConfig = AuthConfig()
@@ -107,11 +108,12 @@ class BaseConfig(BaseSettings):
     STARROCKS_SQLALCHEMY: StarRocksSQLAlchemyConfig = StarRocksSQLAlchemyConfig()
     POSTGRES_SQLALCHEMY: PostgresSQLAlchemyConfig = PostgresSQLAlchemyConfig()
     SQLITE_SQLALCHEMY: SQLiteSQLAlchemyConfig = SQLiteSQLAlchemyConfig()
+    LANGUAGE: LanguageType = LanguageType.FA
 
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls: Type[BaseSettings],
+        settings_cls: type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
@@ -128,8 +130,7 @@ class BaseConfig(BaseSettings):
         )
 
     def customize(self) -> None:
-        """
-        Customize configuration after loading.
+        """Customize configuration after loading.
 
         This method can be overridden in subclasses to perform custom
         configuration modifications after loading settings.
@@ -147,15 +148,12 @@ class BaseConfig(BaseSettings):
             AssertionError: If the global config hasn't been set.
         """
         if cls.__global_config is None:
-            raise AssertionError(
-                "Global config not set. Call BaseConfig.set_global(MyConfig()) first."
-            )
+            raise AssertionError("Global config not set. Call BaseConfig.set_global(MyConfig()) first.")
         return cls.__global_config
 
     @classmethod
     def set_global(cls, config: T) -> None:
-        """
-        Sets the global configuration instance and stores its type for reloading.
+        """Sets the global configuration instance and stores its type for reloading.
 
         This method should be called once during application initialization.
 
@@ -188,7 +186,5 @@ class BaseConfig(BaseSettings):
         if cls.__config_class_to_reload is None:
             raise RuntimeError("Cannot reload: config was never set with set_global().")
 
-
         new_instance = cls.__config_class_to_reload()
         cls.set_global(new_instance)
-

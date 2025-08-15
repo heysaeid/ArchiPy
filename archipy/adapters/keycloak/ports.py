@@ -224,18 +224,38 @@ class KeycloakPort:
         """Create a new client role."""
         raise NotImplementedError
 
+    @abstractmethod
     def create_realm(self, realm_name: str, skip_exists: bool = True, **kwargs) -> dict[str, Any]:
         """Create a new Keycloak realm."""
         raise NotImplementedError
 
+    @abstractmethod
     def get_realm(self, realm_name: str) -> dict[str, Any]:
         """Get realm details by realm name."""
         raise NotImplementedError
 
+    @abstractmethod
     def create_client(
         self, client_id: str, realm: str | None = None, skip_exists: bool = True, **kwargs
     ) -> dict[str, Any] | None:
         """Create a new client in the specified realm."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def add_realm_roles_to_composite(self, composite_role_name: str, child_role_names: list[str]) -> None:
+        """Add realm roles to a composite role."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def add_client_roles_to_composite(
+        self, composite_role_name: str, client_id: str, child_role_names: list[str]
+    ) -> None:
+        """Add client roles to a composite role."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_composite_realm_roles(self, role_name: str) -> list[dict[str, Any]] | None:
+        """Get composite roles for a realm role."""
         raise NotImplementedError
 
 
@@ -465,4 +485,21 @@ class AsyncKeycloakPort:
         self, client_id: str, realm: str | None = None, skip_exists: bool = True, **kwargs
     ) -> dict[str, Any] | None:
         """Create a new client in the specified realm."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def add_realm_roles_to_composite(self, composite_role_name: str, child_role_names: list[str]) -> None:
+        """Add realm roles to a composite role."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def add_client_roles_to_composite(
+        self, composite_role_name: str, client_id: str, child_role_names: list[str]
+    ) -> None:
+        """Add client roles to a composite role."""
+        raise NotImplementedError
+
+    @abstractmethod
+    async def get_composite_realm_roles(self, role_name: str) -> list[dict[str, Any]] | None:
+        """Get composite roles for a realm role."""
         raise NotImplementedError

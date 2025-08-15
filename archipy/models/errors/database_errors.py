@@ -10,7 +10,7 @@ class DatabaseError(BaseError):
     def __init__(
         self,
         database: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -28,7 +28,7 @@ class DatabaseConnectionError(DatabaseError):
     def __init__(
         self,
         database: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_CONNECTION_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -42,7 +42,7 @@ class DatabaseQueryError(DatabaseError):
         self,
         database: str | None = None,
         query: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_QUERY_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -61,7 +61,7 @@ class DatabaseTransactionError(DatabaseError):
         self,
         database: str | None = None,
         transaction_id: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_TRANSACTION_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -80,7 +80,7 @@ class DatabaseTimeoutError(DatabaseError):
         self,
         database: str | None = None,
         timeout: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_TIMEOUT_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -99,7 +99,7 @@ class DatabaseConstraintError(DatabaseError):
         self,
         database: str | None = None,
         constraint: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_CONSTRAINT_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -117,7 +117,7 @@ class DatabaseIntegrityError(DatabaseError):
     def __init__(
         self,
         database: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_INTEGRITY_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -130,7 +130,7 @@ class DatabaseDeadlockError(DatabaseError):
     def __init__(
         self,
         database: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_DEADLOCK_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -143,7 +143,7 @@ class DatabaseSerializationError(DatabaseError):
     def __init__(
         self,
         database: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_SERIALIZATION_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -156,7 +156,7 @@ class DatabaseConfigurationError(DatabaseError):
     def __init__(
         self,
         database: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.DATABASE_CONFIGURATION_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -169,7 +169,7 @@ class CacheError(BaseError):
     def __init__(
         self,
         cache_type: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.CACHE_ERROR.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -187,7 +187,7 @@ class CacheMissError(BaseError):
     def __init__(
         self,
         cache_key: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.CACHE_MISS.value,
         additional_data: dict | None = None,
     ) -> None:

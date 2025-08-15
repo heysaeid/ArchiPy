@@ -1,8 +1,18 @@
+import json
 from typing import TYPE_CHECKING, ClassVar
 
-from archipy.models.dtos.error_dto import ErrorDetailDTO
-from archipy.models.types.error_message_types import ErrorMessageType
-from archipy.models.types.language_type import LanguageType
+if TYPE_CHECKING:
+    import grpc
+
+try:
+    import grpc
+    from grpc import aio as grpc_aio
+
+    GRPC_AVAILABLE = True
+except ImportError:
+    GRPC_AVAILABLE = False
+    grpc = None
+    grpc_aio = None
 
 try:
     from http import HTTPStatus
@@ -10,19 +20,20 @@ try:
     HTTP_AVAILABLE = True
 except ImportError:
     HTTP_AVAILABLE = False
-    if not TYPE_CHECKING:
-        # Only create at runtime, not during type checking
-        HTTPStatus = None
+    HTTPStatus = None
 
-try:
-    from grpc import StatusCode
 
-    GRPC_AVAILABLE = True
-except ImportError:
-    GRPC_AVAILABLE = False
-    if not TYPE_CHECKING:
-        # Only create at runtime, not during type checking
-        StatusCode = None
+if GRPC_AVAILABLE:
+    from grpc import ServicerContext
+    from grpc.aio import ServicerContext as AsyncServicerContext
+else:
+    # Fallback types for when grpc is not available
+    ServicerContext = object
+    AsyncServicerContext = object
+
+from archipy.models.dtos.error_dto import ErrorDetailDTO
+from archipy.models.types.error_message_types import ErrorMessageType
+from archipy.models.types.language_type import LanguageType
 
 
 class BaseError(Exception):
@@ -34,20 +45,17 @@ class BaseError(Exception):
     - Integration with HTTP and gRPC status codes
 
     Attributes:
-        error (ErrorDetailDTO): The error details including message and status codes.
-        lang (LanguageType): The language for the error message.
-        additional_data (dict[str, Any] | None): Additional context data for the error.
         http_status_code (ClassVar[int]): HTTP status code for the error.
-        grpc_status_code (ClassVar[int]): gRPC status code for the error.
+        grpc_status_code (ClassVar[int | "grpc.StatusCode"]): gRPC status code for the error.
     """
 
     http_status_code: ClassVar[int] = 500
-    grpc_status_code: ClassVar[int] = 13  # INTERNAL
+    grpc_status_code: ClassVar[int] = grpc.StatusCode.INTERNAL if grpc else 13
 
     def __init__(
         self,
         error: ErrorDetailDTO | ErrorMessageType | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         additional_data: dict | None = None,
         *args: object,
     ) -> None:
@@ -69,7 +77,18 @@ class BaseError(Exception):
         else:
             self.error_detail = ErrorMessageType.UNKNOWN_ERROR.value
 
-        self.lang = lang
+        if lang is None:
+            try:
+                from archipy.configs.base_config import BaseConfig
+
+                self.lang = BaseConfig.global_config().LANGUAGE
+            except (ImportError, AssertionError):
+                from archipy.models.types.language_type import LanguageType
+
+                self.lang = LanguageType.FA
+        else:
+            self.lang = lang
+
         self.additional_data = additional_data or {}
 
         # Initialize base Exception with the message
@@ -102,7 +121,7 @@ class BaseError(Exception):
         return response
 
     @property
-    def http_status_code(self) -> int | None:
+    def http_status_code_value(self) -> int | None:
         """Gets the HTTP status code if HTTP support is available.
 
         Returns:
@@ -111,7 +130,7 @@ class BaseError(Exception):
         return self.error_detail.http_status if HTTP_AVAILABLE else None
 
     @property
-    def grpc_status_code(self) -> int | None:
+    def grpc_status_code_value(self) -> int | None:
         """Gets the gRPC status code if gRPC support is available.
 
         Returns:
@@ -137,8 +156,8 @@ class BaseError(Exception):
             f"{self.__class__.__name__}("
             f"code='{self.error_detail.code}', "
             f"message='{self.get_message()}', "
-            f"http_status={self.http_status_code}, "
-            f"grpc_status={self.grpc_status_code}, "
+            f"http_status={self.http_status_code_value}, "
+            f"grpc_status={self.grpc_status_code_value}, "
             f"additional_data={self.additional_data}"
             f")"
         )
@@ -178,3 +197,148 @@ class BaseError(Exception):
             str: The Persian error message.
         """
         return self.error_detail.message_fa
+
+    @staticmethod
+    def _convert_int_to_grpc_status(status_int: int) -> "grpc.StatusCode":
+        """Convert integer status code to gRPC StatusCode enum.
+
+        Args:
+            status_int: Integer status code
+
+        Returns:
+            grpc.StatusCode: Corresponding StatusCode enum member
+        """
+        status_map = {
+            0: grpc.StatusCode.OK,
+            1: grpc.StatusCode.CANCELLED,
+            2: grpc.StatusCode.UNKNOWN,
+            3: grpc.StatusCode.INVALID_ARGUMENT,
+            4: grpc.StatusCode.DEADLINE_EXCEEDED,
+            5: grpc.StatusCode.NOT_FOUND,
+            6: grpc.StatusCode.ALREADY_EXISTS,
+            7: grpc.StatusCode.PERMISSION_DENIED,
+            8: grpc.StatusCode.RESOURCE_EXHAUSTED,
+            9: grpc.StatusCode.FAILED_PRECONDITION,
+            10: grpc.StatusCode.ABORTED,
+            11: grpc.StatusCode.OUT_OF_RANGE,
+            12: grpc.StatusCode.UNIMPLEMENTED,
+            13: grpc.StatusCode.INTERNAL,
+            14: grpc.StatusCode.UNAVAILABLE,
+            15: grpc.StatusCode.DATA_LOSS,
+            16: grpc.StatusCode.UNAUTHENTICATED,
+        }
+
+        return status_map.get(status_int, grpc.StatusCode.INTERNAL)
+
+    def _get_grpc_status_code(self) -> "grpc.StatusCode":
+        """Gets the proper gRPC status code for this error.
+
+        Returns:
+            grpc.StatusCode: The gRPC status code enum.
+        """
+        if self.grpc_status_code_value is not None:
+            return self._convert_int_to_grpc_status(self.grpc_status_code_value)
+
+        if hasattr(self.__class__, "grpc_status_code"):
+            status_code = self.__class__.grpc_status_code
+
+            if isinstance(status_code, grpc.StatusCode):
+                return status_code
+
+            if isinstance(status_code, int):
+                return self._convert_int_to_grpc_status(status_code)
+
+        return grpc.StatusCode.INTERNAL
+
+    async def abort_grpc_async(self, context: AsyncServicerContext) -> None:
+        """Aborts an async gRPC call with the appropriate status code and message.
+
+        Args:
+            context: The gRPC ServicerContext to abort.
+
+        Raises:
+            ValueError: If context is None or doesn't have abort method.
+        """
+        if context is None:
+            raise ValueError("gRPC context cannot be None")
+
+        if not GRPC_AVAILABLE or not hasattr(context, "abort"):
+            raise ValueError("Invalid gRPC context: missing abort method")
+
+        status_code = self._get_grpc_status_code()
+        message = self.get_message()
+
+        if self.additional_data:
+            context.set_trailing_metadata([("additional_data", json.dumps(self.additional_data))])
+
+        await context.abort(status_code, message)
+
+    def abort_grpc_sync(self, context: ServicerContext) -> None:
+        """Aborts a sync gRPC call with the appropriate status code and message.
+
+        Args:
+            context: The gRPC ServicerContext to abort.
+
+        Raises:
+            ValueError: If context is None or doesn't have abort method.
+        """
+        if context is None:
+            raise ValueError("gRPC context cannot be None")
+
+        if not GRPC_AVAILABLE or not hasattr(context, "abort"):
+            raise ValueError("Invalid gRPC context: missing abort method")
+
+        status_code = self._get_grpc_status_code()
+        if status_code is None:
+            raise ValueError("gRPC is not available")
+
+        message = self.get_message()
+
+        if self.additional_data:
+            context.set_trailing_metadata([("additional_data", json.dumps(self.additional_data))])
+
+        context.abort(status_code, message)
+
+    @classmethod
+    async def abort_with_error_async(
+        cls,
+        context: AsyncServicerContext,
+        error: ErrorDetailDTO | ErrorMessageType | None = None,
+        lang: LanguageType | None = None,
+        additional_data: dict | None = None,
+    ) -> None:
+        """Creates an error instance and immediately aborts the async gRPC context.
+
+        Args:
+            context: The async gRPC ServicerContext to abort.
+            error: The error detail or message type.
+            lang: Language code for the error message.
+            additional_data: Additional context data for the error.
+
+        Raises:
+            ValueError: If context is None or invalid.
+        """
+        instance = cls(error=error, lang=lang, additional_data=additional_data)
+        await instance.abort_grpc_async(context)
+
+    @classmethod
+    def abort_with_error_sync(
+        cls,
+        context: ServicerContext,
+        error: ErrorDetailDTO | ErrorMessageType | None = None,
+        lang: LanguageType | None = None,
+        additional_data: dict | None = None,
+    ) -> None:
+        """Creates an error instance and immediately aborts the sync gRPC context.
+
+        Args:
+            context: The sync gRPC ServicerContext to abort.
+            error: The error detail or message type.
+            lang: Language code for the error message.
+            additional_data: Additional context data for the error.
+
+        Raises:
+            ValueError: If context is None or invalid.
+        """
+        instance = cls(error=error, lang=lang, additional_data=additional_data)
+        instance.abort_grpc_sync(context)

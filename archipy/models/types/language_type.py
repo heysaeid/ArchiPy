@@ -12,5 +12,5 @@ class LanguageType(str, Enum):
         EN (str): Represents the English language (ISO 639-1 code: 'en').
     """
 
-    FA = "fa"  # Persian
-    EN = "en"  # English
+    FA = "FA"  # Persian
+    EN = "EN"  # English

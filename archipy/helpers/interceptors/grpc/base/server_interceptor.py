@@ -1,6 +1,5 @@
 import abc
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Awaitable, Callable
 
 import grpc
 
@@ -73,20 +72,27 @@ class BaseGrpcServerInterceptor(grpc.ServerInterceptor, metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def intercept(self, method: Callable, request: Any, context: grpc.ServicerContext) -> Any:
+    def intercept(
+        self, method: Callable, request: object, context: grpc.ServicerContext, method_name_model: MethodName
+    ) -> object:
         """Intercepts a gRPC server call.
 
         Args:
             method (Callable): The method to be intercepted.
-            request (Any): The request object.
+            request (object): The request object.
             context (grpc.ServicerContext): The context of the RPC call.
+            method_name_model (str): The full method name (e.g., "/package.Service/Method").
 
         Returns:
-            Any: The result of the intercepted method.
+            object: The result of the intercepted method.
         """
         return method(request, context)
 
-    def intercept_service(self, continuation, handler_call_details):
+    def intercept_service(
+        self,
+        continuation: Callable[[grpc.HandlerCallDetails], grpc.RpcMethodHandler | None],
+        handler_call_details: grpc.HandlerCallDetails,
+    ) -> grpc.RpcMethodHandler | None:
         """Intercepts the service call and wraps the handler with custom logic.
 
         Args:
@@ -99,23 +105,93 @@ class BaseGrpcServerInterceptor(grpc.ServerInterceptor, metaclass=abc.ABCMeta):
         next_handler = continuation(handler_call_details)
         if next_handler is None:
             return None
+
         handler_factory, next_handler_method = _get_factory_and_method(next_handler)
 
-        def invoke_intercept_method(request, context):
-            """Invokes the intercepted method with additional context.
+        def invoke_intercept_method(request: object, context: grpc.ServicerContext) -> object:
+            """Invokes the intercepted method.
 
             Args:
-                request (Any): The request object.
+                request (object): The request object.
                 context (grpc.ServicerContext): The context of the RPC call.
 
             Returns:
-                Any: The result of the intercepted method.
+                object: The result of the intercepted method.
             """
-            context.method_name_model = parse_method_name(handler_call_details.method)
-            return self.intercept(next_handler_method, request, context)
+            method_name_model = parse_method_name(handler_call_details.method)
+            return self.intercept(next_handler_method, request, context, method_name_model)
 
         return handler_factory(
             invoke_intercept_method,
             request_deserializer=next_handler.request_deserializer,
             response_serializer=next_handler.response_serializer,
+        )
+
+
+class BaseAsyncGrpcServerInterceptor(grpc.aio.ServerInterceptor, metaclass=abc.ABCMeta):
+    """Base class for asynchronous gRPC server interceptors.
+
+    This class provides a simplified base implementation for intercepting async gRPC server calls.
+    Unlike the synchronous version, async interceptors work differently and don't need the complex
+    handler wrapping logic.
+    """
+
+    @abc.abstractmethod
+    async def intercept(
+        self, method: Callable, request: object, context: grpc.aio.ServicerContext, method_name_model: MethodName
+    ) -> object:
+        """Intercepts an async gRPC server call.
+
+        Args:
+            method (Callable): The method to be intercepted.
+            request (object): The request object.
+            context (grpc.aio.ServicerContext): The context of the RPC call.
+            method_name_model (MethodName): The parsed method name containing package, service, and method components.
+
+        Returns:
+            object: The result of the intercepted method.
+        """
+        return await method(request, context)
+
+    async def intercept_service(
+        self,
+        continuation: Callable[[grpc.HandlerCallDetails], Awaitable[grpc.RpcMethodHandler | None]],
+        handler_call_details: grpc.HandlerCallDetails,
+    ) -> grpc.RpcMethodHandler | None:
+        """Intercepts the service call using the simplified async pattern.
+
+        For async gRPC, we don't need the complex handler wrapping that sync interceptors require.
+        Instead, we can use a much simpler pattern where we just await the continuation and
+        then wrap the actual method call.
+
+        Args:
+            continuation: The continuation function to call.
+            handler_call_details: Details of the handler call.
+
+        Returns:
+            grpc.RpcMethodHandler: The wrapped RPC method handler.
+        """
+        next_handler = await continuation(handler_call_details)
+        if next_handler is None:
+            return None
+
+        handler_factory, next_handler_method = _get_factory_and_method(next_handler)
+
+        async def invoke_intercept_method(request: object, context: grpc.aio.ServicerContext) -> object:
+            """Invokes the intercepted async method.
+
+            Args:
+                request (object): The request object.
+                context (grpc.aio.ServicerContext): The context of the async RPC call.
+
+            Returns:
+                object: The result of the intercepted method.
+            """
+            method_name_model = parse_method_name(handler_call_details.method)
+            return await self.intercept(next_handler_method, request, context, method_name_model)
+
+        return handler_factory(
+            invoke_intercept_method,
+            request_deserializer=getattr(next_handler, "request_deserializer", None),
+            response_serializer=getattr(next_handler, "response_serializer", None),
         )

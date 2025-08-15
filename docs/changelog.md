@@ -2,7 +2,354 @@
 
 All notable changes to ArchiPy are documented in this changelog, organized by version.
 
-## [v3.3.1] - 2025-01-06
+## [3.6.1] - 2025-08-11
+
+### New Features
+
+#### Security Scanning Integration
+
+- **Bandit Security Tool** - Added comprehensive security vulnerability scanning to the development workflow
+    - Integrated Bandit 1.7.8 for automated security analysis of Python code
+    - Added security scanning to CI/CD pipeline with configurable rules and exclusions
+    - Enhanced security posture with automated detection of common security issues
+    - Improved code quality through proactive security vulnerability identification
+
+#### Enhanced Testing Framework
+
+- **Behave 1.3.0 Upgrade** - Updated BDD testing framework to latest version with improved async support
+    - Enhanced async test handling capabilities for better performance and reliability
+    - Improved test execution efficiency with optimized async context management
+    - Streamlined test infrastructure with cleaner step definitions and scenario management
+    - Enhanced test coverage and reliability across all adapter test suites
+
+### Improvements
+
+#### SQLAlchemy Type Safety
+
+- **Generic TypeVar Support** - Enhanced SQLAlchemy adapters with improved generic type preservation
+    - Added TypeVar support to preserve concrete entity types in adapter operations
+    - Improved type safety for database operations with better generic type handling
+    - Enhanced IDE support and type checking for database adapter usage
+    - Maintained backward compatibility while improving type inference capabilities
+
+#### Test Infrastructure
+
+- **Streamlined Test Helpers** - Refactored and optimized test infrastructure for better maintainability
+    - Removed redundant test helper functions to reduce code duplication
+    - Enhanced step definitions with cleaner, more focused implementations
+    - Improved test scenario context management for better test isolation
+    - Optimized test execution with reduced overhead and improved performance
+
+### Code Quality
+
+#### Security Enhancements
+
+- **Automated Security Checks** - Integrated security scanning into development workflow
+    - Added Bandit configuration with customizable security rules and exclusions
+    - Enhanced CI/CD pipeline with automated security vulnerability detection
+    - Improved security posture through proactive code analysis
+    - Standardized security practices across development team
+
+#### Testing Improvements
+
+- **Enhanced Test Coverage** - Improved test reliability and maintainability
+    - Updated all adapter test suites to work with Behave 1.3.0
+    - Streamlined test step definitions for better readability and maintenance
+    - Enhanced test context management for improved test isolation
+    - Optimized test execution performance and reliability
+
+### Dependencies
+
+- **Security Tools** - Added Bandit 1.7.8 for automated security scanning
+- **Testing Framework** - Updated Behave to version 1.3.0 for improved async support
+- **Development Tools** - Enhanced development workflow with security and testing improvements
+
+### Community Contributions
+
+- **@younesious** - Enhanced SQLAlchemy adapters with generic TypeVar support for improved type safety
+- **@itsnegaar** - Upgraded Behave testing framework to version 1.3.0 with enhanced async support
+## [3.6.0] - 2025-07-29
+
+### New Features
+
+#### gRPC Exception Interceptor System
+
+- **Centralized Exception Handling** - Implemented comprehensive gRPC server exception interceptors for both synchronous
+  and asynchronous operations
+    - Added `GrpcServerExceptionInterceptor` for synchronous gRPC services with automatic exception conversion
+    - Added `AsyncGrpcServerExceptionInterceptor` for asynchronous gRPC services with async exception handling
+    - Eliminated the need for repetitive try-catch blocks in individual gRPC service methods
+    - Automatic conversion of exceptions to appropriate gRPC error responses with proper status codes
+
+#### Enhanced Error Handling
+
+- **Pydantic Validation Error Handling** - Integrated automatic Pydantic validation error processing in gRPC
+  interceptors
+    - Automatic conversion of ValidationError to InvalidArgumentError with detailed error information
+    - Structured validation error formatting with field-level error details
+    - Enhanced debugging capabilities with comprehensive validation error reporting
+
+#### Language Configuration System
+
+- **Global Language Configuration** - Added LANGUAGE configuration to BaseConfig for consistent language handling
+    - Introduced LANGUAGE attribute in BaseConfig with default Persian (FA) language support
+    - Standardized language type constants to uppercase for ISO compliance
+    - Improved language handling across error messages and user interfaces
+
+### Improvements
+
+#### gRPC Status Code Management
+
+- **Enhanced Status Code Handling** - Improved gRPC status code conversion and management in BaseError
+    - Added static method for converting integer status codes to gRPC StatusCode enums
+    - Enhanced metadata handling in gRPC abort methods with conditional additional data inclusion
+    - Refined type hints for context parameters in abort methods for better clarity
+    - Improved error context preservation and debugging capabilities
+
+#### Error System Refactoring
+
+- **Optional Language Parameters** - Refactored error handling classes to use optional language parameters
+    - Removed mandatory language parameter requirements for improved flexibility
+    - Enhanced error initialization with automatic language detection from global configuration
+    - Improved error message consistency and localization support
+    - Maintained backward compatibility while improving developer experience
+
+### Bug Fixes
+
+#### Error Initialization
+
+- **Language Configuration Fix** - Fixed language initialization in BaseError to use global configuration
+    - Ensured language is set correctly from global configuration when not provided during initialization
+    - Improved error message consistency across different initialization scenarios
+    - Enhanced code readability and maintainability
+
+#### Type Safety Improvements
+
+- **Enhanced Type Hints** - Improved type hints for gRPC status codes and error handling
+    - Refined type annotations for better IDE support and code reliability
+    - Enhanced type safety across error handling components
+    - Improved developer experience with better autocomplete and error detection
+
+### Code Quality
+
+- **Comprehensive Error Coverage** - Updated all error classes to support the new language and gRPC handling system
+    - Enhanced auth_errors, business_errors, database_errors, network_errors, resource_errors, system_errors, and
+      validation_errors
+    - Improved error categorization and handling consistency
+    - Enhanced error reporting and debugging capabilities across all error types
+
+## [3.5.2] - 2025-07-28
+
+### Bug Fixes
+
+#### Elasticsearch Authentication
+
+- **Password Secret Value Extraction** - Fixed critical authentication issue in Elasticsearch adapters where password
+  secret values were not being properly extracted
+    - Updated both synchronous and asynchronous Elasticsearch adapters to use `get_secret_value()` method for
+      HTTP_PASSWORD
+    - Resolved authentication failures when using SecretStr password configuration
+    - Improved security by properly handling encrypted password fields in Elasticsearch configuration
+
+### Dependencies
+
+- **Poetry Lock Update** - Updated poetry.lock file to Poetry 2.1.2 for improved dependency management
+    - Enhanced dependency resolution with latest Poetry version
+    - Updated platform-specific package markers for better cross-platform compatibility
+    - Improved package hash verification and security
+
+### Code Quality
+
+- **Authentication Consistency** - Standardized password handling across Elasticsearch adapters
+    - Ensured consistent secret value extraction in both sync and async adapters
+    - Maintained backward compatibility while improving security practices
+    - Enhanced error handling for authentication configuration
+
+## [3.5.1] - 2025-07-28
+
+### Bug Fixes
+
+#### HTTP Status Code Handling
+
+- **Status Code Name Mismatch** - Fixed critical issue in FastAPIExceptionHandler where `http_status_code` was
+  incorrectly referenced
+    - Changed from `exception.http_status_code` to `exception.http_status_code_value` for proper status code retrieval
+    - Resolved HTTP status code name mismatch that was causing incorrect error responses
+    - Improved error handling consistency in FastAPI exception processing
+
+### Improvements
+
+#### Protobuf DTO Runtime Type Safety
+
+- **Runtime Type Checking** - Enhanced BaseProtobufDTO with comprehensive runtime type validation
+    - Added runtime type checking in `from_proto()` method to validate input parameter types
+    - Implemented proper type validation before protobuf message processing
+    - Enhanced error messages with clear type mismatch information
+
+#### Custom Exception Integration
+
+- **Custom Exception Handling** - Replaced generic TypeError with domain-specific InvalidEntityTypeError
+    - Updated protobuf DTO type validation to use `InvalidEntityTypeError` for better error categorization
+    - Improved error context with expected and actual type information
+    - Enhanced error handling consistency across the protobuf DTO system
+
+### Code Quality Enhancements
+
+- **Error Handling Consistency** - Standardized error handling patterns across protobuf DTO operations
+    - Improved error message clarity and debugging capabilities
+    - Enhanced type safety with proper exception chaining
+    - Maintained backward compatibility while improving error reporting
+
+## [3.5.0] - 2025-07-26
+
+### New Features
+
+#### Protobuf DTO Support
+
+- **BaseProtobufDTO** - Added new base class for Data Transfer Objects that can be converted to and from Protobuf
+  messages
+    - Provides seamless integration between Pydantic DTOs and Google Protocol Buffers
+    - Supports bidirectional conversion with `from_proto()` and `to_proto()` methods
+    - Includes runtime dependency checking for protobuf availability
+    - Maintains type safety with proper error handling for missing protobuf dependencies
+
+### Bug Fixes
+
+#### Type Safety Improvements
+
+- **ClassVar Type Variable Issue** - Fixed critical type annotation issue in BaseProtobufDTO where ClassVar contained
+  type variables
+    - Resolved `ClassVar` parameter cannot include type variables error
+    - Updated type annotations to use concrete `Message` type instead of type variables
+    - Improved type safety by using proper concrete types for class variables
+    - Added comprehensive type annotations for all methods and parameters
+
+#### Code Quality Enhancements
+
+- **Import Cleanup** - Removed invalid Unicode characters and simplified import structure
+    - Fixed invisible Unicode character `\uab` that was causing linter errors
+    - Streamlined protobuf import logic by removing unnecessary type variables
+    - Enhanced code readability and maintainability
+    - Added proper docstring formatting with Google-style documentation
+
+#### Linting Configuration
+
+- **Ruff Configuration** - Updated linting rules to accommodate protobuf DTO patterns
+    - Added `ANN401` exception for `base_protobuf_dto.py` to allow `Any` types in `*args` and `**kwargs`
+    - Maintained strict type checking while allowing necessary flexibility for DTO inheritance patterns
+    - Ensured all pre-commit hooks pass without compromising code quality standards
+
+## [3.4.5] - 2025-07-24
+
+### Improvements
+
+#### Configuration Template Enhancements
+
+- **Improved Readability** - Enhanced ElasticsearchAPMConfig size fields to use human-readable string values instead of
+  raw bytes
+    - Changed `API_REQUEST_SIZE` from `768 * 1024` to `"768kb"` for better configuration clarity
+    - Changed `LOG_FILE_SIZE` from `50 * 1024 * 1024` to `"50mb"` for improved readability
+- **Configuration Clarity** - Updated size-related configuration fields to use standard size notation (kb, mb) making
+  configuration files more intuitive and easier to understand
+
+### Bug Fixes
+
+- **Code Cleanup** - Removed redundant files to improve project structure and reduce maintenance overhead
+
+## [3.4.4] - 2025-07-17
+
+### Improvements
+
+#### gRPC Integration Improvements
+
+- **Import Safety** - Added robust gRPC import handling with try/except blocks to prevent import errors when gRPC is not
+  available
+- **Type Safety** - Enhanced type annotations for gRPC context handling with improved error type definitions
+- **Error Handling** - Improved gRPC error handling with better type safety and context management
+
+#### Dependency Updates
+
+- **Kafka** - Updated confluent-kafka to version 2.11.0+ for improved stability and performance
+- **Keycloak** - Updated python-keycloak to version 5.7.0+ for enhanced security and features
+- **Sentry** - Updated sentry-sdk to version 2.33.0+ for better error tracking capabilities
+- **MyPy** - Updated MyPy to version 1.17.0+ for improved type checking and Python 3.13 support
+
+## [3.4.3] - 2025-07-17
+
+### Improvements
+
+#### Keycloak Security Enhancements
+
+- **Admin Mode Control** - Implemented `IS_ADMIN_MODE_ENABLED` configuration flag to control Keycloak admin operations
+- **Enhanced Security** - Added granular control over admin capabilities allowing authentication-only mode without admin
+  privileges
+- **Principle of Least Privilege** - Updated both synchronous and asynchronous Keycloak adapters to respect admin mode
+  configuration
+- **Test Coverage** - Updated BDD test steps to properly handle admin mode configuration for comprehensive testing
+
+### Security
+
+- **Reduced Attack Surface** - Admin operations can now be disabled while maintaining authentication capabilities
+- **Environment Isolation** - Different environments can have different admin capabilities based on configuration
+- **Audit Trail** - Clear separation between authentication and administrative operations for better security monitoring
+
+## [3.4.2] - 2025-07-17
+
+### Bug Fixes
+
+- **Import Error Resolution** - Fixed critical import errors that were preventing proper module initialization and
+  functionality
+
+## [3.4.1] - 2025-07-07
+
+### Bug Fixes
+
+- **Import Error Fix** - Resolved import error issues that were affecting module loading and dependency resolution
+
+## [3.4.0] - 2025-06-29
+
+### New Features
+
+#### gRPC Integration Enhancements
+
+- **Async gRPC Server Interceptors** - Added comprehensive async gRPC server interceptors with enhanced tracing
+  capabilities and metric collection for better observability
+- **Enhanced Authentication Context** - Implemented advanced authentication context management with gRPC decorators for
+  seamless integration
+- **Improved Error Handling** - Enhanced gRPC error handling and context management with better type annotations and
+  error propagation
+
+#### Keycloak gRPC Authentication
+
+- **gRPC Authentication Enhancement** - Added token extraction and role validation capabilities for gRPC services with
+  Keycloak integration
+- **Composite Role Management** - Implemented composite role management methods in both KeycloakAdapter and
+  AsyncKeycloakAdapter for advanced authorization scenarios
+- **Streamlined Role Checks** - Enhanced role checking and error handling in KeycloakAdapter for better performance and
+  reliability
+
+### Improvements
+
+#### Error Handling & Type Safety
+
+- **Enhanced Type Annotations** - Updated type annotations in BaseError class for improved gRPC context handling and
+  better type safety
+- **Refined Interceptors** - Improved gRPC server interceptors with better error handling and method name context
+  support
+
+#### Code Quality & Performance
+
+- **DateTime Optimization** - Refactored BaseUtils and UpdatableMixin to use naive local datetime for improved
+  performance and consistency
+- **Library Updates** - Updated dependencies and libraries for better compatibility and security
+
+### Community Contributions
+
+- **Collaborative Development** - Merged contributions from @Mohammadreza-kh94 for Keycloak gRPC authentication
+  enhancements
+- **Code Refactoring** - Integrated improvements from @heysaeid for datetime handling optimizations
+
+## [v3.3.1] - 2025-06-12
 
 ### Improvements
 
@@ -62,7 +409,7 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
 - **Collaborative improvements** - Merged contributions from @Mohammadreza-kh94 for Keycloak enhancements and @heysaeid
   for configuration fixes
 
-## [v3.3.0] - 2025-01-06
+## [v3.3.0] - 2025-06-09
 
 ### New Features
 
@@ -104,7 +451,12 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
   result processing, allowing developers to choose between `fetchall()` for multiple entities or `scalars().all()` for
   single entity queries, optimizing performance based on query requirements.
 
-## [v3.2.7] - 2025-01-06
+#### Database Performance
+
+- **Optimized search query execution** - Refactored SQLAlchemy query execution method to use `fetchall()` instead of
+  `scalars().all()` for improved performance and memory efficiency in both synchronous and asynchronous adapters
+
+## [v3.2.6] - 2025-01-06
 
 ### Improvements
 

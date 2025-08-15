@@ -5,7 +5,7 @@ particularly focusing on setup/teardown of resources like databases
 and handling async operations.
 """
 
-import asyncio
+import os
 import logging
 import uuid
 
@@ -17,11 +17,31 @@ from pydantic_settings import SettingsConfigDict
 from archipy.adapters.base.sqlalchemy.session_manager_registry import SessionManagerRegistry
 from archipy.configs.base_config import BaseConfig
 
+from features.test_containers import ContainerManager
+
+from testcontainers.core.config import testcontainers_config
 
 class TestConfig(BaseConfig):
     model_config = SettingsConfigDict(
         env_file=".env.test",
     )
+
+    # Test container images
+    REDIS__IMAGE: str = "redis:7-alpine"
+    POSTGRES__IMAGE: str = "postgres:17"
+    ELASTIC__IMAGE: str = "elasticsearch:9.1.0"
+    KAFKA__IMAGE: str = "confluentinc/cp-kafka:7.4.0"
+    MINIO__IMAGE: str = "minio/minio:latest"
+    KEYCLOAK__IMAGE: str = "quay.io/keycloak/keycloak:23.0"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # Configure testcontainers to use custom ryuk image
+        ryuk_image = os.getenv("TESTCONTAINERS_RYUK_CONTAINER_IMAGE")
+        if ryuk_image:
+            testcontainers_config.ryuk_image = ryuk_image
+
 
 
 # Initialize global config
@@ -43,6 +63,10 @@ def before_all(context: Context):
     # Create the scenario context pool manager
     context.scenario_context_pool = ScenarioContextPoolManager()
 
+    # Initialize and start all test containers
+    context.test_containers = ContainerManager
+    context.test_containers.start_all()
+
 
 def before_scenario(context: Context, scenario: Scenario):
     """Setup performed before each scenario runs."""
@@ -62,19 +86,10 @@ def before_scenario(context: Context, scenario: Scenario):
     # Assign test config to scenario context
     try:
         scenario_context.store("test_config", config)
+        scenario_context.store("test_containers", context.test_containers)
     except Exception as e:
         logger.exception(f"Error setting test config: {e}")
 
-    # Set up async test environment if needed
-    if "async" in scenario.name.lower() or any("async" in tag.lower() for tag in scenario.tags):
-        logger.info("Setting up async test environment")
-        try:
-            # Create a new event loop for this scenario
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            scenario_context.store("_async_test_loop", loop)
-        except Exception as e:
-            logger.exception(f"Error setting up async environment: {e}")
 
 
 def after_scenario(context: Context, scenario: Scenario):
@@ -95,6 +110,10 @@ def after_scenario(context: Context, scenario: Scenario):
 
 def after_all(context: Context):
     """Cleanup performed after all tests run."""
+    # Stop all test containers
+    if hasattr(context, "test_containers"):
+        context.test_containers.stop_all()
+
     # Clean up any remaining resources
     if hasattr(context, "scenario_context_pool"):
         context.scenario_context_pool.cleanup_all()

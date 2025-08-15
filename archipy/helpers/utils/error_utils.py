@@ -1,6 +1,8 @@
 import logging
 from typing import Any, Protocol
 
+from pydantic_core._pydantic_core import ValidationError
+
 from archipy.configs.base_config import BaseConfig
 from archipy.models.dtos.fastapi_exception_response_dto import (
     FastAPIErrorResponseDTO,
@@ -54,6 +56,34 @@ except ImportError:
 
 class ErrorUtils:
     """A utility class for handling errors, including capturing, reporting, and generating responses."""
+
+    @staticmethod
+    def format_validation_errors(
+        validation_error: ValidationError,
+        *,
+        include_type: bool = False,
+    ) -> list[dict[str, str]]:
+        """Formats Pydantic validation errors into a structured format.
+
+        Args:
+            validation_error (ValidationError): The validation error to format.
+            include_type (bool): Whether to include the error type in the output. Defaults to False.
+
+        Returns:
+            list[dict[str, str]]: A list of formatted validation error details.
+        """
+        formatted_errors = []
+        for error in validation_error.errors():
+            error_dict = {
+                "field": ".".join(str(x) for x in error["loc"]),
+                "message": error["msg"],
+                "value": str(error.get("input", "")),
+            }
+            if include_type:
+                error_dict["type"] = error["type"]
+            formatted_errors.append(error_dict)
+
+        return formatted_errors
 
     @staticmethod
     def capture_exception(exception: BaseException) -> None:

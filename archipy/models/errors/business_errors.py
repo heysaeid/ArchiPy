@@ -11,7 +11,7 @@ class InvalidStateError(BaseError):
         self,
         current_state: str | None = None,
         expected_state: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_STATE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -31,7 +31,7 @@ class FailedPreconditionError(BaseError):
     def __init__(
         self,
         precondition: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.FAILED_PRECONDITION.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -49,7 +49,7 @@ class BusinessRuleViolationError(BaseError):
     def __init__(
         self,
         rule: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.BUSINESS_RULE_VIOLATION.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -68,7 +68,7 @@ class InvalidOperationError(BaseError):
         self,
         operation: str | None = None,
         context: str | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INVALID_OPERATION.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -87,7 +87,7 @@ class InsufficientFundsError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INSUFFICIENT_FUNDS.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -99,7 +99,7 @@ class InsufficientBalanceError(BaseError):
 
     def __init__(
         self,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.INSUFFICIENT_BALANCE.value,
         additional_data: dict | None = None,
     ) -> None:
@@ -112,7 +112,7 @@ class MaintenanceModeError(BaseError):
     def __init__(
         self,
         estimated_duration: int | None = None,
-        lang: LanguageType = LanguageType.FA,
+        lang: LanguageType | None = None,
         error: ErrorDetailDTO = ErrorMessageType.MAINTENANCE_MODE.value,
         additional_data: dict | None = None,
     ) -> None:
