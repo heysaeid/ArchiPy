@@ -5,7 +5,6 @@ from uuid import UUID
 from sqlalchemy import Delete, Executable, Result, ScalarResult, Update, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute, Session
-from sqlalchemy.orm.session import OrmExecuteOptionsParameter
 from sqlalchemy.sql import Select
 
 from archipy.adapters.base.sqlalchemy.ports import AnyExecuteParams, AsyncSQLAlchemyPort, SQLAlchemyPort
@@ -456,7 +455,7 @@ class BaseSQLAlchemyAdapter(
         self,
         statement: Executable, 
         params: AnyExecuteParams | None = None,
-        execution_options: OrmExecuteOptionsParameter | None = None
+        execution_options: dict[str, Any] | None = None
     ) -> Result[Any]:
         """Execute a SQLAlchemy statement.
 
@@ -776,7 +775,7 @@ class AsyncBaseSQLAlchemyAdapter(
         self,
         statement: Executable,
         params: AnyExecuteParams | None = None,
-        execution_options: OrmExecuteOptionsParameter | None = None
+        execution_options: dict[str, Any] | None = None
     ) -> Result[Any]:
         """Execute a SQLAlchemy statement.
 
