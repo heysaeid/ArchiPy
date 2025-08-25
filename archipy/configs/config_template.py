@@ -6,7 +6,7 @@ and more.
 """
 
 import logging
-from typing import Literal, Self
+from typing import Any, Literal, Self
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, PostgresDsn, SecretStr, model_validator
@@ -395,6 +395,7 @@ class SQLAlchemyConfig(BaseModel):
     PORT: int | None = Field(default=5432, description="Database port")
     QUERY_CACHE_SIZE: int = Field(default=500, description="Size of the query cache")
     USERNAME: str | None = Field(default=None, description="Database username")
+    CONNECT_ARGS: dict[str, Any] = {}
 
 
 class SQLiteSQLAlchemyConfig(SQLAlchemyConfig):
