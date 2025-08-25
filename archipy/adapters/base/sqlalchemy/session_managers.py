@@ -109,7 +109,7 @@ class BaseSQLAlchemySessionManager(SessionManagerPort):
                 pool_use_lifo=configs.POOL_USE_LIFO,
                 query_cache_size=configs.QUERY_CACHE_SIZE,
                 max_overflow=configs.POOL_MAX_OVERFLOW,
-                connect_args=self._get_connect_args(),
+                connect_args=self._get_connect_args(configs),
             )
         except SQLAlchemyError as e:
             if "configuration" in str(e).lower():
@@ -135,13 +135,13 @@ class BaseSQLAlchemySessionManager(SessionManagerPort):
         """
         pass
 
-    def _get_connect_args(self) -> dict:
+    def _get_connect_args(self, configs: SQLAlchemyConfig) -> dict:
         """Return additional connection arguments for the engine.
 
         Returns:
             A dictionary of connection arguments (default is empty).
         """
-        return {}
+        return configs.CONNECT_ARGS or {}
 
     def _get_session_generator(self) -> scoped_session:
         """Create a scoped session factory for synchronous sessions.
@@ -295,7 +295,7 @@ class AsyncBaseSQLAlchemySessionManager(AsyncSessionManagerPort):
                 pool_use_lifo=configs.POOL_USE_LIFO,
                 query_cache_size=configs.QUERY_CACHE_SIZE,
                 max_overflow=configs.POOL_MAX_OVERFLOW,
-                connect_args=self._get_connect_args(),
+                connect_args=self._get_connect_args(configs),
             )
         except SQLAlchemyError as e:
             if "configuration" in str(e).lower():
@@ -321,13 +321,13 @@ class AsyncBaseSQLAlchemySessionManager(AsyncSessionManagerPort):
         """
         pass
 
-    def _get_connect_args(self) -> dict:
+    def _get_connect_args(self, configs: SQLAlchemyConfig) -> dict:
         """Return additional connection arguments for the engine.
 
         Returns:
             A dictionary of connection arguments (default is empty).
         """
-        return {}
+        return configs.CONNECT_ARGS or {}
 
     def _get_session_generator(self) -> async_scoped_session:
         """Create an async scoped session factory.
