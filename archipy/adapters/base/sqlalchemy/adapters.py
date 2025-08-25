@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, override, TypeVar
+from typing import Any, TypeVar, override
 from uuid import UUID
 
 from sqlalchemy import Delete, Executable, Result, ScalarResult, Update, func, select
@@ -451,12 +451,18 @@ class BaseSQLAlchemyAdapter(
             return ...
 
     @override
-    def execute(self, statement: Executable, params: AnyExecuteParams | None = None) -> Result[Any]:
+    def execute(
+        self,
+        statement: Executable, 
+        params: AnyExecuteParams | None = None,
+        execution_options: dict[str, Any] | None = None
+    ) -> Result[Any]:
         """Execute a SQLAlchemy statement.
 
         Args:
             statement: The SQLAlchemy statement to execute.
             params: Optional parameters for the statement.
+            execution_options: Optional dictionary of execution options(e.g., {"stream_results": True}).
 
         Returns:
             The result of the execution.
@@ -469,7 +475,12 @@ class BaseSQLAlchemyAdapter(
         """
         try:
             session = self.get_session()
-            result = session.execute(statement, params or {})
+
+            kwargs = {}
+            if execution_options:
+                kwargs["execution_options"] = execution_options
+
+            result = session.execute(statement, params or {}, **kwargs)
         except Exception as e:
             self._handle_db_exception(e, self.session_manager._get_database_name())
         else:
@@ -760,12 +771,18 @@ class AsyncBaseSQLAlchemyAdapter(
             return ...
 
     @override
-    async def execute(self, statement: Executable, params: AnyExecuteParams | None = None) -> Result[Any]:
+    async def execute(
+        self,
+        statement: Executable,
+        params: AnyExecuteParams | None = None,
+        execution_options: dict[str, Any] | None = None
+    ) -> Result[Any]:
         """Execute a SQLAlchemy statement.
 
         Args:
             statement: The SQLAlchemy statement to execute.
             params: Optional parameters for the statement.
+            execution_options: Optional dictionary of execution options(e.g., {"stream_results": True}).
 
         Returns:
             The result of the execution.
@@ -778,7 +795,12 @@ class AsyncBaseSQLAlchemyAdapter(
         """
         try:
             session = self.get_session()
-            result = await session.execute(statement, params or {})
+
+            kwargs = {}
+            if execution_options:
+                kwargs["execution_options"] = execution_options
+
+            result = await session.execute(statement, params or {}, **kwargs)
         except Exception as e:
             self._handle_db_exception(e, self.session_manager._get_database_name())
         else:
