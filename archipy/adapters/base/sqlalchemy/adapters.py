@@ -670,6 +670,7 @@ class AsyncBaseSQLAlchemyAdapter(
             session.add_all(entities)
             await session.flush()
         except Exception as e:
+            await session.rollback()
             self._handle_db_exception(e, self.session_manager._get_database_name())
         else:
             return entities
