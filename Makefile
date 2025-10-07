@@ -32,19 +32,26 @@ setup: ## Setup project pre-requisites
 .PHONY: install
 install: ## Install project dependencies
 	@echo "${BLUE}Installing project dependencies...${NC}"
-	$(UV) sync --extra dev
+	$(UV) sync --extra dev --upgrade
 	$(PRE_COMMIT) install
 
 .PHONY: install-dev
 install-dev: ## Install project dependencies with dev extras
 	@echo "${BLUE}Installing project dependencies with dev extras...${NC}"
-	$(UV) sync --all-extras --all-groups
+	$(UV) sync --all-extras --all-groups --upgrade
 	$(PRE_COMMIT) install
 
 .PHONY: update
 update: ## Update dependencies to their latest versions
 	@echo "${BLUE}Updating dependencies...${NC}"
 	$(UV) lock --upgrade
+
+.PHONY: update-all
+update-all: ## Aggressively update all dependencies to latest versions
+	@echo "${BLUE}Aggressively updating all dependencies...${NC}"
+	@echo "${YELLOW}Note: This updates uv.lock; to change pyproject.toml constraints, edit manually${NC}"
+	$(UV) lock --upgrade
+	$(UV) sync --all-extras --all-groups --upgrade
 
 .PHONY: clean
 clean: ## Remove build artifacts and cache directories
