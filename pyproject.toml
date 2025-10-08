@@ -9,7 +9,7 @@ readme = "README.md"
 version = "0.1.0" # This vesrion set on publish flow!
 requires-python = ">=3.13,<4"
 dependencies = [
-    "pydantic>=2.11.10",
+    "pydantic>=2.12.0",
     "pydantic-settings>=2.11.0",
     "requests>=2.32.5",
     "jdatetime>=5.2.0",
@@ -25,8 +25,8 @@ dependency-injection = ["dependency-injector>=4.48.2"]
 elastic-apm = ["elastic-apm>=6.24.0"]
 elasticsearch = ["elasticsearch>=9.1.1"]
 elasticsearch-async = ["elasticsearch[async]>=9.1.1"]
-fakeredis = ["fakeredis>=2.31.3"]
-fastapi = ["fastapi[all]>=0.118.0"]
+fakeredis = ["fakeredis>=2.32.0"]
+fastapi = ["fastapi[all]>=0.118.1"]
 grpc = ["grpcio>=1.75.1", "grpcio-health-checking>=1.75.1", "protobuf>=6.32.1"]
 jwt = ["pyjwt>=2.10.1"]
 kafka = ["confluent-kafka>=2.11.1"]
@@ -43,7 +43,7 @@ sqlalchemy = ["sqlalchemy>=2.0.43"]
 starrocks = ["starrocks>=1.2.3", "pymysql>=1.1.2"]
 starrocks-async = ["starrocks>=1.2.3", "aiomysql>=0.2.0"]
 temporalio = ["temporalio>=1.18.1"]
-testcontainers = ["testcontainers>=4.13.1"]
+testcontainers = ["testcontainers>=4.13.2"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -70,7 +70,7 @@ dev = [
     "mypy>=1.18.2",
     "pre-commit-hooks>=6.0.0",
     "pre-commit>=4.3.0",
-    "ruff>=0.13.3",
+    "ruff>=0.14.0",
     "types-cachetools>=6.2.0.20250827",
     "types-grpcio>=1.0.0.20251001",
     "types-protobuf>=6.32.1.20250918",
