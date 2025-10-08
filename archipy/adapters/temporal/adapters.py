@@ -14,6 +14,8 @@ from temporalio.client import (
     Client,
     Schedule,
     ScheduleActionStartWorkflow,
+    ScheduleOverlapPolicy,
+    SchedulePolicy,
     ScheduleSpec,
     TLSConfig,
     WorkflowHandle,
@@ -404,17 +406,29 @@ class TemporalAdapter(TemporalPort):
             self._client = None
 
     @override
-    async def create_schedule(self, schedule_id: str, workflow_class: Any, spec: ScheduleSpec, task_queue: str) -> None:
+    async def create_schedule(
+        self,
+        schedule_id: str,
+        workflow_class: Any,
+        spec: ScheduleSpec,
+        task_queue: str,
+        workflow_id: str | None = None,
+        schedule_policy: SchedulePolicy | None = None,
+    ) -> None:
         """Create a schedule for a workflow."""
         client = await self.get_client()
 
         sched = Schedule(
             action=ScheduleActionStartWorkflow(
                 workflow_class,
-                id=schedule_id,
+                id=workflow_id,
                 task_queue=task_queue,
             ),
             spec=spec,
+            policy=schedule_policy
+            or SchedulePolicy(
+                overlap=ScheduleOverlapPolicy.SKIP,
+            ),
         )
 
         await client.create_schedule(schedule_id, sched)
