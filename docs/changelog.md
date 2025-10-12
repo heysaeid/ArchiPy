@@ -2,13 +2,34 @@
 
 All notable changes to ArchiPy are documented in this changelog, organized by version.
 
+## [3.13.6] - 2025-01-15
+
+### Changed
+
+#### Dependency Updates
+
+- **Core Framework Updates** - Updated key dependencies to latest compatible versions for improved performance and
+  security
+    - Updated SQLAlchemy from >=2.0.43 to >=2.0.44 for enhanced ORM functionality and performance improvements
+    - Updated FastAPI from >=0.118.2 to >=0.119.0 for improved web framework capabilities and bug fixes
+    - Updated Confluent Kafka from >=2.12.0 to latest stable version for enhanced messaging capabilities and improved
+      reliability
+
+### Performance
+
+- **Optimized Dependency Resolution** - Improved dependency resolution and installation performance
+    - Enhanced UV package manager integration with latest dependency versions
+    - Improved lock file generation and dependency resolution speed
+    - Better memory usage during dependency installation and updates
+
 ## [3.13.5] - 2025-10-08
 
 ### Changed
 
 #### Dependency Updates
 
-- **Comprehensive Dependency Synchronization** - Updated all dependencies to latest compatible versions for improved security and performance
+- **Comprehensive Dependency Synchronization** - Updated all dependencies to latest compatible versions for improved
+  security and performance
     - Updated Pydantic from 2.11.10 to 2.12.0 for enhanced data validation and performance improvements
     - Updated Pydantic Core from 2.33.2 to 2.41.1 for improved core functionality and performance
     - Updated FastAPI from 0.118.0 to 0.118.1 for enhanced web framework capabilities and bug fixes
@@ -63,7 +84,8 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
 
 #### Dependency Updates
 
-- **Comprehensive Dependency Synchronization** - Updated all dependencies to latest compatible versions for improved security and performance
+- **Comprehensive Dependency Synchronization** - Updated all dependencies to latest compatible versions for improved
+  security and performance
     - Updated Pydantic from 2.11.9 to 2.11.10 for enhanced data validation and performance improvements
     - Updated Requests from 2.32.4 to 2.32.5 for improved HTTP client capabilities and security fixes
     - Updated Elastic APM from 6.23.0 to 6.24.0 for enhanced application performance monitoring
@@ -105,7 +127,8 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
 
 #### Configuration Management
 
-- **Comprehensive .env.example Update** - Synchronized environment configuration template with all available config options
+- **Comprehensive .env.example Update** - Synchronized environment configuration template with all available config
+  options
     - Added Language configuration support with Persian (FA) language setting
     - Enhanced Elasticsearch configuration with complete API key, SSL, and sniffing options
     - Expanded Kafka configuration with SSL settings, compression, batch processing, and transaction support
@@ -138,7 +161,8 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
 
 #### Documentation Examples - Complete Python 3.13 & Best Practices Update
 
-- **Comprehensive Example Documentation Refactor** - Updated all 17 example files to follow modern Python 3.13 standards and ArchiPy best practices
+- **Comprehensive Example Documentation Refactor** - Updated all 17 example files to follow modern Python 3.13 standards
+  and ArchiPy best practices
     - Updated all type hints to Python 3.13 syntax (`|` for unions, lowercase built-ins, `type` instead of `Type`)
     - Replaced `Union[X, Y]` with `X | Y` throughout all examples
     - Replaced `Optional[X]` with `X | None` throughout all examples
@@ -186,7 +210,8 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
 
 #### Documentation Infrastructure
 
-- **MkDocs Configuration Reorganization** - Restructured MkDocs configuration for improved build performance and flexibility
+- **MkDocs Configuration Reorganization** - Restructured MkDocs configuration for improved build performance and
+  flexibility
     - Moved `mkdocs.yml` from project root to `docs/` directory for better organization
     - Added `docs_dir: .` and `site_dir: ../site` configuration for proper directory mapping
     - Created `docs/mkdocs-fast.yml` for fast local development builds (10-20s)
@@ -339,10 +364,13 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
 
 #### Redis Cluster and Sentinel Support
 
-- **Redis Cluster Integration** - Added comprehensive Redis Cluster support for distributed caching and high availability
+- **Redis Cluster Integration** - Added comprehensive Redis Cluster support for distributed caching and high
+  availability
     - Added `CLUSTER` mode to RedisMode enum for cluster deployment configuration
-    - Implemented cluster-specific methods: `cluster_info()`, `cluster_nodes()`, `cluster_slots()`, and `cluster_keyslot()`
-    - Added cluster configuration options: `CLUSTER_NODES`, `CLUSTER_REQUIRE_FULL_COVERAGE`, `CLUSTER_READ_FROM_REPLICAS`
+    - Implemented cluster-specific methods: `cluster_info()`, `cluster_nodes()`, `cluster_slots()`, and
+      `cluster_keyslot()`
+    - Added cluster configuration options: `CLUSTER_NODES`, `CLUSTER_REQUIRE_FULL_COVERAGE`,
+      `CLUSTER_READ_FROM_REPLICAS`
     - Enhanced connection pooling with `MAX_CONNECTIONS` and retry mechanisms for cluster nodes
     - Improved error handling for cluster-specific operations and node failover scenarios
 
