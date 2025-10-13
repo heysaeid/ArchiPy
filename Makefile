@@ -32,7 +32,7 @@ setup: ## Setup project pre-requisites
 .PHONY: install
 install: ## Install project dependencies
 	@echo "${BLUE}Installing project dependencies...${NC}"
-	$(UV) sync --extra dev --upgrade
+	$(UV) sync --all-extras --group dev --upgrade
 	$(PRE_COMMIT) install
 
 .PHONY: install-dev

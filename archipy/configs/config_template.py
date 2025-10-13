@@ -18,9 +18,9 @@ from archipy.models.errors import FailedPreconditionError, InvalidArgumentError
 class RedisMode(StrEnum):
     """Redis deployment mode."""
 
-    STANDALONE = "standalone"
-    SENTINEL = "sentinel"
-    CLUSTER = "cluster"
+    STANDALONE = "STANDALONE"
+    SENTINEL = "SENTINEL"
+    CLUSTER = "CLUSTER"
 
 
 class ElasticsearchConfig(BaseModel):
