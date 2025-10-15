@@ -9,7 +9,7 @@ readme = "README.md"
 version = "0.1.0" # This vesrion set on publish flow!
 requires-python = ">=3.13,<4"
 dependencies = [
-    "pydantic>=2.12.0",
+    "pydantic>=2.12.2",
     "pydantic-settings>=2.11.0",
     "requests>=2.32.5",
     "jdatetime>=5.2.0",

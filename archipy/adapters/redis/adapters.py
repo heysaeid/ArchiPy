@@ -99,13 +99,13 @@ class RedisAdapter(RedisPort):
             startup_nodes=startup_nodes,
             password=configs.PASSWORD,
             decode_responses=configs.DECODE_RESPONSES,
-            skip_full_coverage_check=configs.CLUSTER_SKIP_FULL_COVERAGE_CHECK,
             max_connections=configs.MAX_CONNECTIONS,
             retry_on_timeout=configs.RETRY_ON_TIMEOUT,
             socket_connect_timeout=configs.SOCKET_CONNECT_TIMEOUT,
             socket_timeout=configs.SOCKET_TIMEOUT,
             health_check_interval=configs.HEALTH_CHECK_INTERVAL,
             read_from_replicas=configs.CLUSTER_READ_FROM_REPLICAS,
+            require_full_coverage=configs.CLUSTER_REQUIRE_FULL_COVERAGE,
         )
 
         # In cluster mode, both clients point to the cluster
@@ -1171,13 +1171,13 @@ class AsyncRedisAdapter(AsyncRedisPort):
             startup_nodes=startup_nodes,
             password=configs.PASSWORD,
             decode_responses=configs.DECODE_RESPONSES,
-            skip_full_coverage_check=configs.CLUSTER_SKIP_FULL_COVERAGE_CHECK,
             max_connections=configs.MAX_CONNECTIONS,
             retry_on_timeout=configs.RETRY_ON_TIMEOUT,
             socket_connect_timeout=configs.SOCKET_CONNECT_TIMEOUT,
             socket_timeout=configs.SOCKET_TIMEOUT,
             health_check_interval=configs.HEALTH_CHECK_INTERVAL,
             read_from_replicas=configs.CLUSTER_READ_FROM_REPLICAS,
+            require_full_coverage=configs.CLUSTER_REQUIRE_FULL_COVERAGE,
         )
 
         # In cluster mode, both clients point to the cluster

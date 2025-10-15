@@ -2,6 +2,24 @@
 
 All notable changes to ArchiPy are documented in this changelog, organized by version.
 
+## [Unreleased]
+
+### Changed
+
+#### Redis Configuration Refinements
+
+- **Redis Cluster Parameter Standardization** - Aligned Redis cluster configuration with redis-py library standards
+    - Replaced deprecated `skip_full_coverage_check` parameter with standard `require_full_coverage` parameter
+    - Updated both synchronous and asynchronous Redis cluster adapters for compatibility with latest redis-py
+    - Removed redundant `CLUSTER_SKIP_FULL_COVERAGE_CHECK` configuration field
+    - Enhanced Redis cluster reliability with proper full coverage validation
+    - Improved code maintainability by following redis-py best practices
+
+#### Dependency Updates
+
+- **Pydantic Version Update** - Updated Pydantic to version 2.12.2 for enhanced data validation
+    - Improved validation performance and bug fixes
+
 ## [3.13.7] - 2025-10-13
 
 ### Changed
@@ -15,7 +33,8 @@ All notable changes to ArchiPy are documented in this changelog, organized by ve
 #### Configuration Improvements
 
 - **Redis Mode Constants** - Standardized Redis mode constants to uppercase format for better consistency
-    - Updated RedisMode enum values from lowercase to uppercase (`standalone` → `STANDALONE`, `sentinel` → `SENTINEL`, `cluster` → `CLUSTER`)
+    - Updated RedisMode enum values from lowercase to uppercase (`standalone` → `STANDALONE`, `sentinel` → `SENTINEL`,
+      `cluster` → `CLUSTER`)
     - Enhanced configuration consistency across Redis deployment modes
     - Improved code readability and standardization
 
