@@ -2,6 +2,18 @@
 
 All notable changes to ArchiPy are documented in this changelog, organized by version.
 
+## [3.13.9] - 2025-10-15
+
+### Improved
+
+#### Elastic APM Client Initialization
+
+- **Enhanced Client Reuse** - Improved Elastic APM client initialization to prevent duplicate client creation
+    - Updated tracing decorators to use `elasticapm.get_client()` before creating new clients
+    - Applied same pattern to gRPC server interceptors (both sync and async)
+    - Prevents potential memory leaks and improves performance by reusing existing clients
+    - Maintains backward compatibility while optimizing resource usage
+
 ## [3.13.8] - 2025-10-15
 
 ### Changed
