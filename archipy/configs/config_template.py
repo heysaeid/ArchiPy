@@ -572,7 +572,6 @@ class RedisConfig(BaseModel):
     CLUSTER_NODES: list[str] = Field(default=[], description="List of cluster node addresses (host:port)")
     CLUSTER_REQUIRE_FULL_COVERAGE: bool = Field(default=True, description="Require full cluster coverage")
     CLUSTER_READ_FROM_REPLICAS: bool = Field(default=True, description="Allow reading from replica nodes")
-    CLUSTER_SKIP_FULL_COVERAGE_CHECK: bool = Field(default=False, description="Skip full coverage check for testing")
 
     # Sentinel mode settings
     SENTINEL_NODES: list[str] = Field(default=[], description="List of sentinel addresses (host:port)")
