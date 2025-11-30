@@ -41,7 +41,7 @@ class PaginationDTO(BaseDTO):
     page: int = Field(default=1, ge=1, description="Page number (1-indexed)")
     page_size: int = Field(default=10, ge=1, le=100, description="Number of items per page")
 
-    MAX_ITEMS: ClassVar = 10000
+    MAX_ITEMS: ClassVar = 100000000
 
     @model_validator(mode="after")
     def validate_pagination(self) -> Self:
