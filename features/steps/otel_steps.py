@@ -13,6 +13,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.trace import StatusCode
 
 from archipy.configs.base_config import BaseConfig
+from archipy.configs.config_template import OtelLogsExporter, OtelMetricsExporter
 from archipy.helpers.decorators import (
     async_measure_duration,
     async_trace_span,
@@ -27,12 +28,25 @@ from archipy.helpers.utils.otel_utils import OtelUtils
 from archipy.models.errors import ConfigurationError, InvalidArgumentError, NotFoundError
 
 
+def _reset_otel_config_defaults() -> None:
+    """Restore mutable OTEL fields so prior scenarios cannot leak exporter mode."""
+    config = BaseConfig.global_config()
+    config.OTEL.METRICS_EXPORTER = OtelMetricsExporter.OTLP
+    config.OTEL.LOGS_EXPORTER = OtelLogsExporter.CONSOLE
+    config.OTEL.SYSTEM_METRICS_ENABLED = True
+    config.OTEL.METRICS_PULL_HOST = "127.0.0.1"
+    config.OTEL.METRICS_PULL_PORT = 8200
+    config.OTEL.LOGS_ENABLED = False
+    config.OTEL.LOGS_LEVEL = "INFO"
+
+
 def _setup_otel_testing(context: Context) -> None:
     """Enable OTel and install in-memory exporters for the current scenario."""
     scenario_context = get_current_scenario_context(context)
     OtelUtils.reset_for_testing()
 
     config = BaseConfig.global_config()
+    _reset_otel_config_defaults()
     config.OTEL.IS_ENABLED = True
     config.OTEL.TRACES_ENABLED = True
     config.OTEL.METRICS_ENABLED = True
@@ -95,6 +109,7 @@ def teardown_otel_testing(context: Context) -> None:
         config.OTEL.IS_ENABLED = False
         config.OTEL.TRACES_ENABLED = False
         config.OTEL.METRICS_ENABLED = False
+        _reset_otel_config_defaults()
     except AssertionError:
         pass
     scenario_context.store("otel_enabled_for_test", False)
@@ -1345,10 +1360,12 @@ def step_when_init_metric_exporter_fails(context):
     OtelUtils.reset_for_testing()
     OtelUtils._globals_set = False
     config = BaseConfig.global_config()
+    _reset_otel_config_defaults()
     config.OTEL.IS_ENABLED = True
     config.OTEL.TRACES_ENABLED = True
     config.OTEL.METRICS_ENABLED = True
     config.OTEL.LOGS_ENABLED = False
+    config.OTEL.METRICS_EXPORTER = OtelMetricsExporter.OTLP
     config.OTEL.PROTOCOL = "http/protobuf"
     config.OTEL.OTLP_ENDPOINT = "http://localhost:4318"
 

@@ -10,6 +10,7 @@ description: "Release history for ArchiPy 5.x series"
 
 | Version           | Date       | Summary                                                                              |
 |-------------------|------------|--------------------------------------------------------------------------------------|
+| [5.2.1](5.2.1.md) | 2026-09-07 | Fix OTel BDD exporter config leak across scenarios                                   |
 | [5.2.0](5.2.0.md) | 2026-09-07 | OTel metrics pull scrape (`METRICS_EXPORTER`), gRPC RPC metrics, system-metrics flag |
 | [5.1.0](5.1.0.md) | 2026-09-05 | Native FakeAsyncRedis mock; Cursor agent rule ownership; lockfile refresh            |
 | [5.0.7](5.0.7.md) | 2026-09-01 | StarRocks real SQLAlchemy BEGIN/ROLLBACK; expand atomic BDD coverage                 |
