@@ -113,7 +113,10 @@ class OtelUtils:
     ``get_tracer`` / ``get_meter`` against owned or adopted providers.
 
     Providers are built programmatically from ``BaseConfig.OTEL`` only —
-    ``OTEL_*`` environment-variable autoconfiguration is not used.
+    ``OTEL_*`` environment-variable autoconfiguration is not used. On init,
+    ArchiPy installs a W3C TraceContext + Baggage composite textmap propagator
+    (idempotent) so cross-service ``traceparent`` / ``baggage`` carriers stay
+    locked to the intended default.
 
     Initialization is transactional: providers are published only after all enabled
     signals succeed. Pre-existing concrete global providers are adopted (not replaced)
@@ -143,6 +146,7 @@ class OtelUtils:
     _metrics_pull_httpd: Any | None = None
     _metrics_pull_thread: Any | None = None
     _owns_metrics_pull_scrape: bool = False
+    _textmap_propagator_installed: bool = False
 
     @staticmethod
     def is_otel_enabled(config: BaseConfig) -> bool:
@@ -334,6 +338,7 @@ class OtelUtils:
             if cls._initialized and cls._init_pid is not None and cls._init_pid != current_pid:
                 cls._reset_after_fork()
             try:
+                cls._install_textmap_propagator_unlocked()
                 cls._build_providers(config)
                 cls._instrument_installed_libraries(config)
                 cls._register_atexit()
@@ -418,6 +423,7 @@ class OtelUtils:
         from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
         with cls._lock:
+            cls._install_textmap_propagator_unlocked()
             resource = Resource.create({"service.name": service_name})
             tracer_provider = TracerProvider(resource=resource)
             if span_exporter is not None:
@@ -476,6 +482,32 @@ class OtelUtils:
             cls._init_pid = None
             cls._instrumented_libraries.clear()
             cls._clear_metric_instrument_caches()
+            # Keep global textmap propagator; first-call-wins across scenarios.
+
+    @classmethod
+    def _install_textmap_propagator_unlocked(cls) -> None:
+        """Install W3C TraceContext + Baggage as the global textmap propagator.
+
+        Idempotent. Locks ArchiPy's intended carriers (``traceparent``,
+        ``tracestate``, ``baggage``) so another library cannot silently replace
+        the default composite before ``init_otel_if_needed``.
+        """
+        if cls._textmap_propagator_installed:
+            return
+        from opentelemetry.baggage.propagation import W3CBaggagePropagator
+        from opentelemetry.propagate import set_global_textmap
+        from opentelemetry.propagators.composite import CompositePropagator
+        from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
+        set_global_textmap(
+            CompositePropagator(
+                [
+                    TraceContextTextMapPropagator(),
+                    W3CBaggagePropagator(),
+                ],
+            ),
+        )
+        cls._textmap_propagator_installed = True
 
     @classmethod
     def grpc_client_interceptors(cls) -> list[Any]:

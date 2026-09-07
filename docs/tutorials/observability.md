@@ -184,7 +184,9 @@ OTEL__LOGS_EXPORTER=otlp
 ## Initialization Order
 
 Call `OtelUtils.init_otel_if_needed(config)` at bootstrap — **before** your DI container builds
-adapters — right after `BaseConfig.set_global(config)`:
+adapters — right after `BaseConfig.set_global(config)`. Init also installs the W3C TraceContext +
+Baggage textmap propagator (`traceparent` / `tracestate` / `baggage`) so another library cannot
+silently replace the global propagator first.
 
 ```python
 import logging

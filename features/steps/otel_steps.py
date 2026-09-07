@@ -899,6 +899,38 @@ def step_when_call_instrumented_grpc(context):
     scenario_context.store("expected_span_name", "/test.TestService/TestMethod")
 
 
+@when("I call an instrumented async gRPC TestMethod")
+async def step_when_call_instrumented_async_grpc(context):
+    import grpc
+
+    from archipy.helpers.utils.app_utils import AppUtils
+
+    scenario_context = get_current_scenario_context(context)
+    config = BaseConfig.global_config()
+    pb2, pb2_grpc = _import_test_proto()
+
+    class AsyncServicer(pb2_grpc.TestServiceServicer):
+        async def TestMethod(self, request, context_):
+            return pb2.TestResponse(result="ok")
+
+    server = AppUtils.create_async_grpc_app(config)
+    pb2_grpc.add_TestServiceServicer_to_server(AsyncServicer(), server)
+    port = server.add_insecure_port("localhost:0")
+    await server.start()
+    channel_kwargs: dict = {}
+    if config.OTEL.IS_ENABLED and config.OTEL.TRACES_ENABLED and not OtelUtils.import_failed():
+        channel_kwargs["interceptors"] = OtelUtils.async_grpc_client_interceptors()
+    channel = grpc.aio.insecure_channel(f"localhost:{port}", **channel_kwargs)
+    try:
+        stub = pb2_grpc.TestServiceStub(channel)
+        result = await stub.TestMethod(pb2.TestRequest(data="hi"))
+        assert result.result == "ok"
+    finally:
+        await channel.close()
+        await server.stop(None)
+    scenario_context.store("expected_span_name", "/test.TestService/TestMethod")
+
+
 @when("I setup the gRPC OTel interceptor on a list with a sentinel interceptor")
 def step_when_setup_grpc_otel_with_sentinel(context):
     from archipy.helpers.utils.app_utils import GrpcAPIUtils
@@ -907,6 +939,18 @@ def step_when_setup_grpc_otel_with_sentinel(context):
     sentinel = object()
     interceptors = [sentinel]
     GrpcAPIUtils.setup_otel_interceptor(BaseConfig.global_config(), interceptors)
+    scenario_context.store("grpc_interceptors", interceptors)
+    scenario_context.store("grpc_sentinel", sentinel)
+
+
+@when("I setup the async gRPC OTel interceptor on a list with a sentinel interceptor")
+def step_when_setup_async_grpc_otel_with_sentinel(context):
+    from archipy.helpers.utils.app_utils import AsyncGrpcAPIUtils
+
+    scenario_context = get_current_scenario_context(context)
+    sentinel = object()
+    interceptors = [sentinel]
+    AsyncGrpcAPIUtils.setup_otel_interceptor(BaseConfig.global_config(), interceptors)
     scenario_context.store("grpc_interceptors", interceptors)
     scenario_context.store("grpc_sentinel", sentinel)
 
@@ -1008,6 +1052,39 @@ def step_then_single_trace_id(context):
     assert spans, "No finished spans"
     trace_ids = {span.context.trace_id for span in spans}
     assert len(trace_ids) == 1, f"Expected 1 trace id, got {len(trace_ids)}: {[f'{t:032x}' for t in trace_ids]}"
+
+
+@then('the span named "{child_name}" should descend from span "{ancestor_name}"')
+def step_then_span_descends_from(context, child_name, ancestor_name):
+    """Assert ``child`` is in the parent chain of ``ancestor`` (same distributed hop)."""
+    spans = _finished_spans(context)
+    by_span_id = {span.context.span_id: span for span in spans}
+    child = _span_by_name(context, child_name)
+    ancestor = _span_by_name(context, ancestor_name)
+    assert child.context.trace_id == ancestor.context.trace_id, (
+        f"Expected shared trace id between {child_name!r} and {ancestor_name!r}"
+    )
+    current = child
+    seen: set[int] = set()
+    while current.parent is not None and current.parent.span_id not in seen:
+        parent_id = current.parent.span_id
+        seen.add(parent_id)
+        if parent_id == ancestor.context.span_id:
+            return
+        parent = by_span_id.get(parent_id)
+        if parent is None:
+            break
+        current = parent
+    chain = []
+    current = child
+    while current is not None:
+        chain.append(current.name)
+        if current.parent is None:
+            break
+        current = by_span_id.get(current.parent.span_id)
+    raise AssertionError(
+        f"Expected {child_name!r} to descend from {ancestor_name!r}; parent chain: {chain}",
+    )
 
 
 @then('at least {count:d} spans named "{span_name}" should be recorded')
@@ -1463,6 +1540,29 @@ def step_then_log_exported(context, message):
         body = log_record.body
         bodies.append(str(body))
     assert any(message in body for body in bodies), f"Expected {message!r} in {bodies!r}"
+
+
+@then('a log record containing "{message}" should carry the ambient parent trace id and span id')
+def step_then_log_carries_ambient_context(context, message):
+    scenario_context = get_current_scenario_context(context)
+    ambient_span = scenario_context.get("ambient_parent_span")
+    assert ambient_span is not None, "No ambient parent span in scenario context"
+    ambient_ctx = ambient_span.get_span_context()
+    log_exporter = scenario_context.get("log_exporter")
+    OtelUtils.force_flush(timeout_millis=2000)
+    matches = []
+    for record in log_exporter.get_finished_logs():
+        log_record = record.log_record
+        if message not in str(log_record.body):
+            continue
+        matches.append(log_record)
+        assert log_record.trace_id == ambient_ctx.trace_id, (
+            f"Expected log trace_id {ambient_ctx.trace_id:032x}, got {log_record.trace_id:032x}"
+        )
+        assert log_record.span_id == ambient_ctx.span_id, (
+            f"Expected log span_id {ambient_ctx.span_id:016x}, got {log_record.span_id:016x}"
+        )
+    assert matches, f"No log record containing {message!r}"
 
 
 @given("OpenTelemetry is configured for console log export with captured streams")

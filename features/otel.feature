@@ -130,13 +130,31 @@ Feature: OpenTelemetry decorators
     Then a span named "/test.TestService/TestMethod" should be recorded
     And a histogram metric named "rpc.server.duration" should have datapoints
 
+  @async
+  Scenario: async gRPC request records RPC span and handler metrics
+    When I call an instrumented async gRPC TestMethod
+    Then a span named "/test.TestService/TestMethod" should be recorded
+    And a histogram metric named "rpc.server.duration" should have datapoints
+
   Scenario: gRPC OTel interceptor is prepended without dropping existing interceptors
     When I setup the gRPC OTel interceptor on a list with a sentinel interceptor
+    Then the OTel interceptor should be first and the sentinel should remain
+
+  @async
+  Scenario: async gRPC OTel interceptor is prepended without dropping existing interceptors
+    When I setup the async gRPC OTel interceptor on a list with a sentinel interceptor
     Then the OTel interceptor should be first and the sentinel should remain
 
   Scenario: metrics-only gRPC records RPC duration without span
     Given OpenTelemetry metrics-only mode for testing
     When I call an instrumented gRPC TestMethod
+    Then no span named "/test.TestService/TestMethod" should be recorded
+    And a histogram metric named "rpc.server.duration" should have datapoints
+
+  @async
+  Scenario: metrics-only async gRPC records RPC duration without span
+    Given OpenTelemetry metrics-only mode for testing
+    When I call an instrumented async gRPC TestMethod
     Then no span named "/test.TestService/TestMethod" should be recorded
     And a histogram metric named "rpc.server.duration" should have datapoints
 
@@ -196,6 +214,7 @@ Feature: OpenTelemetry decorators
     Then all finished spans should share one trace id
     And a span named "GET /call-grpc" should be recorded
     And a span named "/test.TestService/TestMethod" should be recorded
+    And the span named "/test.TestService/TestMethod" should descend from span "GET /call-grpc"
 
   Scenario: distributed gRPC calls gRPC share one trace
     When gRPC upstream calls gRPC downstream TestMethod
@@ -265,6 +284,12 @@ Feature: OpenTelemetry decorators
     Given OpenTelemetry is configured for testing with log export
     When I emit an INFO log message "otel-log-probe"
     Then a log record containing "otel-log-probe" should be exported
+
+  Scenario: log record carries active span context
+    Given OpenTelemetry is configured for testing with log export
+    And an ambient parent span is active
+    When I emit an INFO log message "otel-log-with-trace"
+    Then a log record containing "otel-log-with-trace" should carry the ambient parent trace id and span id
 
   Scenario: invalid LOGS_EXPORTER is rejected
     When I build OpentelemetryConfig with LOGS_EXPORTER "both"
