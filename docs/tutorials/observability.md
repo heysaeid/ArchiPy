@@ -57,7 +57,12 @@ OTEL__OTLP_ENDPOINT=http://localhost:4317
 OTEL__PROTOCOL=grpc
 OTEL__TRACES_ENABLED=true
 OTEL__METRICS_ENABLED=true
+OTEL__METRICS_EXPORTER=otlp
+OTEL__METRICS_PULL_HOST=0.0.0.0
+OTEL__METRICS_PULL_PORT=8200
+OTEL__SYSTEM_METRICS_ENABLED=true
 OTEL__LOGS_ENABLED=true
+OTEL__LOGS_EXPORTER=console
 OTEL__TRACES_SAMPLE_RATIO=0.1
 OTEL__FASTAPI_EXCLUDED_URLS=health,docs,redoc,openapi.json
 ```
@@ -89,15 +94,68 @@ logger.info("OTel enabled=%s endpoint=%s", config.OTEL.IS_ENABLED, config.OTEL.O
 |---------------------------|-----------------------------|--------------------------------------------------|
 | `IS_ENABLED`              | `false`                     | Master switch                                    |
 | `OTLP_ENDPOINT`           | `http://localhost:4317`     | Default OTLP collector URL                       |
-| `TRACES_ENDPOINT`         | `None`                      | Optional per-signal traces URL override          |
-| `METRICS_ENDPOINT`        | `None`                      | Optional per-signal metrics URL override         |
-| `LOGS_ENDPOINT`           | `None`                      | Optional per-signal logs URL override            |
+| `TRACES_ENDPOINT`         | `None`                      | Optional per-signal OTLP traces URL override     |
+| `METRICS_ENDPOINT`        | `None`                      | Optional per-signal OTLP metrics URL override    |
+| `LOGS_ENDPOINT`           | `None`                      | Optional per-signal OTLP logs URL override       |
 | `PROTOCOL`                | `grpc`                      | `grpc` or `http/protobuf`                        |
 | `TRACES_SAMPLE_RATIO`     | `0.1`                       | Parent-based trace ID ratio sampler              |
-| `METRIC_EXPORT_INTERVAL_MS` | `60000`                   | Periodic metric export interval                  |
+| `METRIC_EXPORT_INTERVAL_MS` | `60000`                   | Periodic OTLP metric export interval             |
+| `METRICS_EXPORTER`        | `otlp`                      | Unique exporter: `otlp` (push) or `pull` (scrape)|
+| `METRICS_PULL_HOST`       | `0.0.0.0`                   | Pull scrape bind host (unauthenticated)          |
+| `METRICS_PULL_PORT`       | `8200`                      | Pull scrape bind port (`/metrics`)               |
+| `SYSTEM_METRICS_ENABLED`  | `true`                      | Process/system metrics instrumentor              |
+| `LOGS_ENABLED`            | `true`                      | Enable log export when OTel is on                |
+| `LOGS_EXPORTER`           | `console`                   | Unique logs exporter: `console` or `otlp`        |
 | `FASTAPI_EXCLUDED_URLS`   | `None`                      | Comma-separated URL patterns skipped by FastAPI  |
 | `RESOURCE_ATTRIBUTES`     | `{}`                        | Extra OTel resource attributes                   |
-| `LOGS_LEVEL`              | `INFO`                      | Minimum level for the root-logger OTLP handler   |
+| `LOGS_LEVEL`              | `INFO`                      | Minimum level for the root-logger handler        |
+
+### Metrics push vs pull
+
+Exactly **one** metrics exporter when `METRICS_ENABLED` is true — set via
+`METRICS_EXPORTER` (`otlp` | `pull`):
+
+| Mode | `METRICS_EXPORTER` | Behavior |
+|------|-------------------|----------|
+| OTLP push (default) | `otlp` | Periodic export to the OTLP collector |
+| Pull scrape | `pull` | Dedicated HTTP server on `METRICS_PULL_HOST:METRICS_PULL_PORT/metrics` |
+
+Pull scrape is a **standalone** process-wide HTTP server started from
+`OtelUtils.init_otel_if_needed` — not a FastAPI `/metrics` route. Works for
+FastAPI, gRPC, and workers.
+
+```bash
+# Pull-only (no collector)
+OTEL__METRICS_ENABLED=true
+OTEL__METRICS_EXPORTER=pull
+OTEL__METRICS_PULL_HOST=0.0.0.0
+OTEL__METRICS_PULL_PORT=8200
+```
+
+### Logs exporters
+
+Exactly **one** logs exporter when `LOGS_ENABLED` is true — set via
+`LOGS_EXPORTER` (`console` | `otlp`):
+
+| Mode | `LOGS_EXPORTER` | Behavior |
+|------|-----------------|----------|
+| Console (default) | `console` | INFO/DEBUG → stdout; WARNING+ → stderr |
+| OTLP | `otlp` | Batch export to the OTLP collector |
+
+```bash
+# OTLP log export
+OTEL__LOGS_ENABLED=true
+OTEL__LOGS_EXPORTER=otlp
+```
+
+> **Warning (scrape security):** The pull scrape endpoint is unauthenticated.
+> Default bind `0.0.0.0` is for cluster scrape. Prefer `127.0.0.1` plus a
+> sidecar/proxy when the network is not locked down. Do not expose scrape on
+> the public internet.
+
+> **Warning (prefork):** The parent process holds the scrape port. With
+> gunicorn `preload` + fork, workers cannot share one scrape port — use a
+> unique port per worker or disable preload.
 
 > **Note (HTTP endpoints):** With `PROTOCOL=http/protobuf`, each signal needs its own
 > path (`/v1/traces`, `/v1/metrics`, `/v1/logs`). When `OTLP_ENDPOINT` has no path
@@ -106,17 +164,21 @@ logger.info("OTel enabled=%s endpoint=%s", config.OTEL.IS_ENABLED, config.OTEL.O
 > override a single signal. gRPC mode uses one shared endpoint and needs no path.
 
 > **Warning (logs cost):** When `LOGS_ENABLED=true`, a `LoggingHandler` is attached to
-> the **root** logger at `LOGS_LEVEL`. Every matching record from every library
-> (httpx, sqlalchemy, urllib3, …) is exported to OTLP. Prefer a higher level
-> (e.g. `WARNING`) in production. Records from `opentelemetry.*` loggers are
-> filtered out to avoid exporter feedback loops.
+> the **root** logger at `LOGS_LEVEL`. With `LOGS_EXPORTER=otlp`, every matching
+> record from every library (httpx, sqlalchemy, urllib3, …) is exported to OTLP —
+> prefer `WARNING` in production. `console` (default) writes locally only.
+> Records from `opentelemetry.*` loggers are filtered out to avoid exporter
+> feedback loops.
 
 > **Note (provider globals):** ArchiPy sets the global tracer/meter provider once
 > (`_globals_set`). If another library already installed a global provider first,
 > FastAPI/gRPC/Temporal interceptors (global) and ArchiPy decorators (owned
-> provider) may emit to different backends. Initialize ArchiPy OTel early via
-> `AppUtils` or `OtelUtils.init_otel_if_needed`.
+> provider) may emit to different backends — and ArchiPy OTLP/pull exporter
+> configuration is ignored for an adopted `MeterProvider`. Initialize ArchiPy
+> OTel early via `AppUtils` or `OtelUtils.init_otel_if_needed`.
 
+> **Note (instrument names):** The OTel SDK lowercases instrument names
+> (`TestMethod` → `testmethod`). Prefer lowercase dotted names in dashboards.
 ---
 
 ## Initialization Order
@@ -186,9 +248,16 @@ logger.info("FastAPI app created with OTel auto-instrumentation")
 
 ### gRPC
 
-`AppUtils.create_grpc_app` / `create_async_grpc_app` insert the OpenTelemetry contrib server
-interceptor at position 0 when OTel is enabled (requires `archipy[otel-grpc]`). Order becomes:
-OTel → exception interceptor → rate-limit (if enabled) → custom interceptors.
+`AppUtils.create_grpc_app` / `create_async_grpc_app` install OpenTelemetry server
+interceptors when OTel is enabled (requires `archipy[otel-grpc]` for traces):
+
+- **Traces** — contrib `server_interceptor` / `aio_server_interceptor` when
+  `TRACES_ENABLED`
+- **Metrics** — ArchiPy `rpc.server.duration` histogram interceptor when
+  `METRICS_ENABLED` (works in metrics-only mode; no handler decorators required)
+
+Order becomes: OTel traces (if any) → OTel metrics (if any) → exception interceptor
+→ rate-limit (if enabled) → custom interceptors.
 
 ```python
 import logging
@@ -207,8 +276,9 @@ logger.info("gRPC server created with OTel interceptor")
 
 On first `OtelUtils.init_otel_if_needed`, ArchiPy best-effort instruments installed contrib
 packages (SQLAlchemy, Redis, Elasticsearch, Confluent Kafka, Cassandra, Botocore, httpx,
-requests) when the matching `otel-*` extras are present.
-
+requests, threading) when the matching `otel-*` extras are present.
+`SystemMetricsInstrumentor` runs only when `METRICS_ENABLED` and
+`SYSTEM_METRICS_ENABLED` are both true.
 ### Client gRPC
 
 For outbound gRPC clients, attach contrib interceptors explicitly:
@@ -333,7 +403,10 @@ def process_payment(amount: float) -> None:
 ```
 
 Instruments default to `{module}.{qualname}.duration` / `.calls` and record a `status`
-attribute (`ok` / `error`). No-op when OTel or `METRICS_ENABLED` is off.
+attribute (`ok` / `error` / `cancelled` for async cancel). Duration histograms use
+explicit second buckets and a description. `status` aligns with tracing:
+`BaseError` with HTTP status below 500 records as `ok` (handled client error), not
+`error`. No-op when OTel or `METRICS_ENABLED` is off.
 
 ---
 

@@ -128,11 +128,53 @@ Feature: OpenTelemetry decorators
   Scenario: gRPC request records RPC span and handler metrics
     When I call an instrumented gRPC TestMethod
     Then a span named "/test.TestService/TestMethod" should be recorded
-    And a histogram metric named "otel.grpc.testmethod.duration" should have datapoints
+    And a histogram metric named "rpc.server.duration" should have datapoints
 
   Scenario: gRPC OTel interceptor is prepended without dropping existing interceptors
     When I setup the gRPC OTel interceptor on a list with a sentinel interceptor
     Then the OTel interceptor should be first and the sentinel should remain
+
+  Scenario: metrics-only gRPC records RPC duration without span
+    Given OpenTelemetry metrics-only mode for testing
+    When I call an instrumented gRPC TestMethod
+    Then no span named "/test.TestService/TestMethod" should be recorded
+    And a histogram metric named "rpc.server.duration" should have datapoints
+
+  Scenario: measure_duration records ok status for client BaseError
+    Given a sync function decorated with measure_duration named "test.notfound.duration" that raises NotFoundError
+    When I call the measured sync function and it fails with NotFoundError
+    Then a histogram metric named "test.notfound.duration" should have status "ok"
+
+  Scenario: system metrics stay off when SYSTEM_METRICS_ENABLED is false
+    Given OpenTelemetry is configured for production init with system metrics disabled
+    When I initialize OpenTelemetry providers from config
+    Then system CPU metric instruments should be absent
+
+  Scenario: metrics pull scrape exposes recorded histogram
+    Given OpenTelemetry is configured for pull-only metrics on an ephemeral port
+    When I initialize OpenTelemetry providers from config
+    And I call a measured sync function named "test.pull.duration"
+    Then the metrics pull scrape endpoint should return 200 containing "test_pull_duration"
+
+  Scenario: metrics pull disabled leaves scrape port closed
+    Given OpenTelemetry is configured for OTLP-only metrics with pull port reserved
+    When I initialize OpenTelemetry providers from config
+    Then the metrics pull scrape port should refuse connections
+
+  Scenario: invalid METRICS_EXPORTER is rejected
+    When I build OpentelemetryConfig with METRICS_EXPORTER "both"
+    Then a ValidationError should be raised for field "METRICS_EXPORTER"
+
+  Scenario: metrics pull init is idempotent
+    Given OpenTelemetry is configured for pull-only metrics on an ephemeral port
+    When I initialize OpenTelemetry providers from config twice
+    Then the metrics pull scrape endpoint should return 200
+
+  Scenario: metrics pull shutdown stops scrape
+    Given OpenTelemetry is configured for pull-only metrics on an ephemeral port
+    When I initialize OpenTelemetry providers from config
+    And I shut down OpenTelemetry providers
+    Then the metrics pull scrape port should refuse connections
 
   Scenario: Temporal connect attaches TracingInterceptor and resolved metrics endpoint
     When I connect a Temporal adapter with OTel enabled using a mocked Client
@@ -223,6 +265,22 @@ Feature: OpenTelemetry decorators
     Given OpenTelemetry is configured for testing with log export
     When I emit an INFO log message "otel-log-probe"
     Then a log record containing "otel-log-probe" should be exported
+
+  Scenario: invalid LOGS_EXPORTER is rejected
+    When I build OpentelemetryConfig with LOGS_EXPORTER "both"
+    Then a ValidationError should be raised for field "LOGS_EXPORTER"
+
+  Scenario: console log exporter writes INFO to stdout
+    Given OpenTelemetry is configured for console log export with captured streams
+    When I emit an INFO log message "otel-console-info"
+    Then the captured stdout should contain "otel-console-info"
+    And the captured stderr should not contain "otel-console-info"
+
+  Scenario: console log exporter writes WARNING to stderr
+    Given OpenTelemetry is configured for console log export with captured streams
+    When I emit a WARNING log message "otel-console-warn"
+    Then the captured stderr should contain "otel-console-warn"
+    And the captured stdout should not contain "otel-console-warn"
 
   Scenario: post-fork state rebuilds owned providers
     Given OpenTelemetry is configured for testing

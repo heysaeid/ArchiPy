@@ -55,6 +55,7 @@ otel = [
     "opentelemetry-instrumentation-requests>=0.64b0",
     "opentelemetry-instrumentation-threading>=0.64b0",
     "opentelemetry-instrumentation-system-metrics>=0.64b0",
+    "opentelemetry-exporter-prometheus>=0.55b0",
 ]
 otel-fastapi = ["archipy[otel]", "opentelemetry-instrumentation-fastapi>=0.64b0"]
 otel-grpc = ["archipy[otel]", "opentelemetry-instrumentation-grpc>=0.64b0"]
@@ -204,6 +205,7 @@ docstring-code-line-length = "dynamic"
 "archipy/adapters/scylladb/*" = ["S608"]  # False positives - parameterized CQL with %s placeholders (also # nosec B608)
 "archipy/helpers/decorators/*" = ["ANN401", "PLR0913", "PLC0415", "PLR0917"]  # Allow Any, many params, lazy imports in decorators
 "archipy/helpers/utils/otel_utils.py" = ["PLC0415", "ANN401", "PLR0913", "PLR0917"]  # Lazy optional deps; provider/instrumentor union types
+"archipy/helpers/interceptors/grpc/otel_metrics/server_interceptor.py" = ["ANN401"]  # OTel histogram handle is dynamically typed
 "archipy/models/errors/base_error.py" = ["PLC0415"]  # Circular import workaround
 "archipy/helpers/utils/string_utils_constants.py" = ["RUF003"]  # Intentional Persian/Arabic glyph documentation in comments
 "archipy/adapters/email/ports.py" = ["PLR0913", "PLR0917"]  # Email port mirrors SMTP send arity

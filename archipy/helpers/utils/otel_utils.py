@@ -18,6 +18,22 @@ logger = logging.getLogger(__name__)
 HTTP_SERVER_ERROR_MIN = 500
 _STATUS_DESC_MAX_LEN = 256
 _DEFAULT_FLUSH_TIMEOUT_MS = 30_000
+DURATION_HISTOGRAM_BUCKETS_S: tuple[float, ...] = (
+    0.005,
+    0.01,
+    0.025,
+    0.05,
+    0.075,
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    1.0,
+    2.5,
+    5.0,
+    7.5,
+    10.0,
+)
 
 _OTEL_INSTALL_HINT = 'OpenTelemetry requires the optional dependency. Install with: uv add "archipy[otel]"'
 _OTEL_FASTAPI_HINT = 'FastAPI OTel instrumentation requires: uv add "archipy[otel-fastapi]"'
@@ -123,6 +139,10 @@ class OtelUtils:
     _logging_handler: Any | None = None
     _init_pid: int | None = None
     _shutdown_provider_ids: ClassVar[set[int]] = set()
+    _metrics_pull_registry: Any | None = None
+    _metrics_pull_httpd: Any | None = None
+    _metrics_pull_thread: Any | None = None
+    _owns_metrics_pull_scrape: bool = False
 
     @staticmethod
     def is_otel_enabled(config: BaseConfig) -> bool:
@@ -262,6 +282,25 @@ class OtelUtils:
             return None
         return Status(StatusCode.ERROR, description=OtelUtils._truncate_status_description(exception))
 
+    @staticmethod
+    def metric_status_for_exception(exception: BaseException) -> str:
+        """Map an exception to a metric ``status`` attribute value.
+
+        Aligns with ``status_for_exception``: handled client ``BaseError`` values
+        (HTTP status below 500) record as ``ok``; other exceptions as ``error``.
+        Callers that catch ``asyncio.CancelledError`` should record ``cancelled``
+        before invoking this helper.
+
+        Args:
+            exception: The exception raised during the instrumented call.
+
+        Returns:
+            ``"ok"`` or ``"error"``.
+        """
+        if OtelUtils.status_for_exception(exception) is None:
+            return "ok"
+        return "error"
+
     @classmethod
     def status_for_cancellation(cls) -> Any:
         """Return an ERROR status for asyncio task cancellation.
@@ -296,7 +335,7 @@ class OtelUtils:
                 cls._reset_after_fork()
             try:
                 cls._build_providers(config)
-                cls._instrument_installed_libraries()
+                cls._instrument_installed_libraries(config)
                 cls._register_atexit()
                 cls._initialized = True
                 cls._init_pid = current_pid
@@ -307,6 +346,7 @@ class OtelUtils:
                     _OTEL_INSTALL_HINT,
                 )
             except Exception:
+                cls._stop_metrics_pull_scrape_unlocked()
                 logger.exception("Failed to initialize OpenTelemetry")
 
     @classmethod
@@ -342,6 +382,7 @@ class OtelUtils:
         with cls._lock:
             cls._force_flush_unlocked(_DEFAULT_FLUSH_TIMEOUT_MS)
             cls._detach_logging_handler_unlocked()
+            cls._stop_metrics_pull_scrape_unlocked()
             cls._shutdown_owned_providers_unlocked()
             cls._tracer_provider = None
             cls._meter_provider = None
@@ -352,9 +393,7 @@ class OtelUtils:
             cls._initialized = False
             cls._init_pid = None
             cls._instrumented_libraries.clear()
-            from archipy.helpers.decorators.metrics import clear_instrument_caches
-
-            clear_instrument_caches()
+            cls._clear_metric_instrument_caches()
 
     @classmethod
     def configure_for_testing(
@@ -424,6 +463,7 @@ class OtelUtils:
         """
         with cls._lock:
             cls._detach_logging_handler_unlocked()
+            cls._stop_metrics_pull_scrape_unlocked()
             cls._shutdown_owned_providers_unlocked()
             cls._tracer_provider = None
             cls._meter_provider = None
@@ -435,9 +475,7 @@ class OtelUtils:
             cls._import_failed = False
             cls._init_pid = None
             cls._instrumented_libraries.clear()
-            from archipy.helpers.decorators.metrics import clear_instrument_caches
-
-            clear_instrument_caches()
+            cls._clear_metric_instrument_caches()
 
     @classmethod
     def grpc_client_interceptors(cls) -> list[Any]:
@@ -483,6 +521,11 @@ class OtelUtils:
         )
         cls._detach_logging_handler_unlocked()
         # Do not call shutdown() — exporter threads belong to the parent process.
+        # Drop scrape handles without stopping the parent's HTTP server.
+        cls._metrics_pull_httpd = None
+        cls._metrics_pull_thread = None
+        cls._metrics_pull_registry = None
+        cls._owns_metrics_pull_scrape = False
         cls._tracer_provider = None
         cls._meter_provider = None
         cls._logger_provider = None
@@ -493,9 +536,18 @@ class OtelUtils:
         cls._globals_set = False
         cls._init_pid = None
         cls._instrumented_libraries.clear()
+        cls._clear_metric_instrument_caches()
+
+    @classmethod
+    def _clear_metric_instrument_caches(cls) -> None:
+        """Clear decorator and gRPC metric instrument caches after provider reset."""
         from archipy.helpers.decorators.metrics import clear_instrument_caches
+        from archipy.helpers.interceptors.grpc.otel_metrics.server_interceptor import (
+            _RpcDurationHistogram,
+        )
 
         clear_instrument_caches()
+        _RpcDurationHistogram.clear()
 
     @classmethod
     def _force_flush_unlocked(cls, timeout_millis: int) -> bool:
@@ -716,8 +768,53 @@ class OtelUtils:
         if new_tracer is not None or new_meter is not None or new_logger is not None:
             cls._globals_set = True
 
+        cls._maybe_start_metrics_pull_scrape_unlocked(
+            otel,
+            owns_meter=owns_meter,
+            new_meter=new_meter,
+            new_tracer=new_tracer,
+            owns_tracer=owns_tracer,
+            new_logger=new_logger,
+            owns_logger=owns_logger,
+        )
+
         if otel.LOGS_ENABLED and new_logger is not None:
             cls._attach_logging_handler_unlocked(getattr(logging, otel.LOGS_LEVEL.upper(), logging.INFO))
+
+    @classmethod
+    def _maybe_start_metrics_pull_scrape_unlocked(
+        cls,
+        otel: Any,
+        *,
+        owns_meter: bool,
+        new_meter: Any | None,
+        new_tracer: Any | None,
+        owns_tracer: bool,
+        new_logger: Any | None,
+        owns_logger: bool,
+    ) -> None:
+        """Start pull scrape when owned; roll back providers on failure."""
+        if not (otel.METRICS_ENABLED and otel.METRICS_EXPORTER == "pull"):
+            return
+        if not (owns_meter and new_meter is not None):
+            logger.warning(
+                "METRICS_EXPORTER=pull but the MeterProvider was adopted; "
+                "ArchiPy metrics pull scrape server is not started for this process",
+            )
+            return
+        try:
+            cls._start_metrics_pull_scrape_unlocked(otel)
+        except Exception:
+            cls._stop_metrics_pull_scrape_unlocked()
+            cls._shutdown_partial(new_tracer, owns_tracer, new_meter, owns_meter, new_logger, owns_logger)
+            cls._tracer_provider = None
+            cls._meter_provider = None
+            cls._logger_provider = None
+            cls._owns_tracer = False
+            cls._owns_meter = False
+            cls._owns_logger = False
+            cls._globals_set = False
+            raise
 
     @classmethod
     def _build_tracer_provider(cls, otel: Any, resource: Any) -> Any:
@@ -734,24 +831,137 @@ class OtelUtils:
     @classmethod
     def _build_meter_provider(cls, otel: Any, resource: Any) -> Any:
         from opentelemetry.sdk.metrics import MeterProvider
-        from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 
-        exporter = cls._create_metric_exporter(otel)
-        reader = PeriodicExportingMetricReader(
-            exporter,
-            export_interval_millis=otel.METRIC_EXPORT_INTERVAL_MS,
+        from archipy.configs.config_template import OtelMetricsExporter
+
+        readers: list[Any] = []
+        if otel.METRICS_EXPORTER == OtelMetricsExporter.OTLP:
+            from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+
+            exporter = cls._create_metric_exporter(otel)
+            readers.append(
+                PeriodicExportingMetricReader(
+                    exporter,
+                    export_interval_millis=otel.METRIC_EXPORT_INTERVAL_MS,
+                ),
+            )
+        elif otel.METRICS_EXPORTER == OtelMetricsExporter.PULL:
+            from opentelemetry.exporter.prometheus import PrometheusMetricReader
+            from prometheus_client import CollectorRegistry
+
+            registry = CollectorRegistry(auto_describe=True)
+            cls._metrics_pull_registry = registry
+            readers.append(PrometheusMetricReader(registry=registry))
+
+        return MeterProvider(resource=resource, metric_readers=readers)
+
+    @classmethod
+    def _start_metrics_pull_scrape_unlocked(cls, otel: Any) -> None:
+        """Start the metrics pull scrape HTTP server if not already running."""
+        if cls._metrics_pull_httpd is not None:
+            return
+        from prometheus_client import start_http_server
+
+        registry = cls._metrics_pull_registry
+        if registry is None:
+            msg = "Metrics pull registry missing before scrape server start"
+            raise RuntimeError(msg)
+
+        httpd, thread = start_http_server(
+            int(otel.METRICS_PULL_PORT),
+            addr=str(otel.METRICS_PULL_HOST),
+            registry=registry,
         )
-        return MeterProvider(resource=resource, metric_readers=[reader])
+        cls._metrics_pull_httpd = httpd
+        cls._metrics_pull_thread = thread
+        cls._owns_metrics_pull_scrape = True
+        logger.info(
+            "Metrics pull scrape server listening on http://%s:%s/metrics",
+            otel.METRICS_PULL_HOST,
+            otel.METRICS_PULL_PORT,
+        )
+
+    @classmethod
+    def _stop_metrics_pull_scrape_unlocked(cls) -> None:
+        """Stop the ArchiPy-owned metrics pull scrape HTTP server."""
+        if not cls._owns_metrics_pull_scrape:
+            cls._metrics_pull_httpd = None
+            cls._metrics_pull_thread = None
+            cls._metrics_pull_registry = None
+            return
+        httpd = cls._metrics_pull_httpd
+        if httpd is not None:
+            try:
+                httpd.shutdown()
+            except Exception:
+                logger.debug("Error shutting down metrics pull scrape server", exc_info=True)
+            try:
+                httpd.server_close()
+            except Exception:
+                logger.debug("Error closing metrics pull scrape server socket", exc_info=True)
+        cls._metrics_pull_httpd = None
+        cls._metrics_pull_thread = None
+        cls._metrics_pull_registry = None
+        cls._owns_metrics_pull_scrape = False
 
     @classmethod
     def _build_logger_provider(cls, otel: Any, resource: Any) -> Any:
         from opentelemetry.sdk._logs import LoggerProvider
-        from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+        from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, SimpleLogRecordProcessor
+
+        from archipy.configs.config_template import OtelLogsExporter
 
         provider = LoggerProvider(resource=resource)
-        exporter = cls._create_log_exporter(otel)
-        provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
+        if otel.LOGS_EXPORTER == OtelLogsExporter.CONSOLE:
+            provider.add_log_record_processor(SimpleLogRecordProcessor(cls._create_console_log_exporter()))
+        else:
+            exporter = cls._create_otlp_log_exporter(otel)
+            provider.add_log_record_processor(BatchLogRecordProcessor(exporter))
         return provider
+
+    @staticmethod
+    def _create_console_log_exporter() -> Any:
+        """Return a console exporter that splits INFO/DEBUG to stdout and WARNING+ to stderr."""
+        import sys
+
+        from opentelemetry._logs.severity import SeverityNumber
+        from opentelemetry.sdk._logs.export import ConsoleLogRecordExporter, LogRecordExportResult
+
+        stdout_exporter = ConsoleLogRecordExporter(out=sys.stdout)
+        stderr_exporter = ConsoleLogRecordExporter(out=sys.stderr)
+        warn_min = SeverityNumber.WARN
+
+        class _StdoutStderrLogExporter:
+            """Route log records to stdout or stderr by severity."""
+
+            def export(self, batch: Sequence[Any]) -> Any:
+                low: list[Any] = []
+                high: list[Any] = []
+                for record in batch:
+                    severity = getattr(record.log_record, "severity_number", None) or SeverityNumber.UNSPECIFIED
+                    severity_value = severity.value if isinstance(severity, SeverityNumber) else int(severity)
+                    if severity_value >= warn_min.value:
+                        high.append(record)
+                    else:
+                        low.append(record)
+                results: list[Any] = []
+                if low:
+                    results.append(stdout_exporter.export(low))
+                if high:
+                    results.append(stderr_exporter.export(high))
+                if any(result == LogRecordExportResult.FAILURE for result in results):
+                    return LogRecordExportResult.FAILURE
+                return LogRecordExportResult.SUCCESS
+
+            def shutdown(self) -> None:
+                stdout_exporter.shutdown()
+                stderr_exporter.shutdown()
+
+            def force_flush(self, timeout_millis: int = 30_000) -> bool:
+                _ = timeout_millis
+                return True
+
+        return _StdoutStderrLogExporter()
 
     @staticmethod
     def _resolve_otlp_endpoint(
@@ -831,7 +1041,7 @@ class OtelUtils:
         return OTLPMetricExporter(endpoint=endpoint, headers=headers, timeout=otel.TIMEOUT)
 
     @classmethod
-    def _create_log_exporter(cls, otel: Any) -> Any:
+    def _create_otlp_log_exporter(cls, otel: Any) -> Any:
         headers = dict(otel.OTLP_HEADERS) or None
         endpoint = cls._resolve_otlp_endpoint(otel, "logs", getattr(otel, "LOGS_ENDPOINT", None))
         if otel.PROTOCOL == "http/protobuf":
@@ -883,7 +1093,7 @@ class OtelUtils:
         cls._logging_handler_attached = False
 
     @classmethod
-    def _instrument_installed_libraries(cls) -> None:
+    def _instrument_installed_libraries(cls, config: BaseConfig) -> None:
         """Best-effort auto-instrumentation of installed contrib packages.
 
         Each entry is ``(cache_key, module, class_name)``. Missing packages are
@@ -905,8 +1115,14 @@ class OtelUtils:
             ("httpx", "opentelemetry.instrumentation.httpx", "HTTPXClientInstrumentor"),
             ("requests", "opentelemetry.instrumentation.requests", "RequestsInstrumentor"),
         )
+        otel = config.OTEL
         for key, module_name, class_name in instrumentors:
             if key in cls._instrumented_libraries:
+                continue
+            if key == "system_metrics" and not (
+                otel.METRICS_ENABLED and otel.SYSTEM_METRICS_ENABLED and cls._meter_provider is not None
+            ):
+                logger.debug("Skipping system metrics instrumentation (disabled by config)")
                 continue
             try:
                 module = __import__(module_name, fromlist=[class_name])

@@ -350,23 +350,69 @@ class FastAPIUtils:
         app.add_exception_handler(Exception, generic_wrapper)
 
 
+def _prepend_otel_grpc_metrics_interceptor(interceptors: list, *, async_mode: bool) -> None:
+    """Prepend the ArchiPy gRPC metrics interceptor when a meter provider exists."""
+    from archipy.helpers.utils.otel_utils import OtelUtils
+
+    if OtelUtils.meter_provider() is None:
+        logger.warning(
+            "OTEL metrics enabled but no meter provider is available; skipping gRPC metrics interceptor",
+        )
+        return
+    if async_mode:
+        from archipy.helpers.interceptors.grpc.otel_metrics.server_interceptor import (
+            AsyncGrpcServerOtelMetricsInterceptor,
+        )
+
+        interceptors.insert(0, AsyncGrpcServerOtelMetricsInterceptor())
+        return
+    from archipy.helpers.interceptors.grpc.otel_metrics.server_interceptor import (
+        GrpcServerOtelMetricsInterceptor,
+    )
+
+    interceptors.insert(0, GrpcServerOtelMetricsInterceptor())
+
+
+def _prepend_otel_grpc_traces_interceptor(interceptors: list, *, async_mode: bool) -> None:
+    """Prepend the contrib gRPC traces interceptor when a tracer provider exists."""
+    from archipy.helpers.utils.otel_utils import OtelUtils
+
+    tracer_provider = OtelUtils.tracer_provider()
+    if tracer_provider is None:
+        logger.warning(
+            "OTEL traces enabled but no tracer provider is available; skipping gRPC OTel interceptor",
+        )
+        return
+    if async_mode:
+        from opentelemetry.instrumentation.grpc import aio_server_interceptor
+
+        interceptors.insert(0, aio_server_interceptor(tracer_provider=tracer_provider))
+        return
+    from opentelemetry.instrumentation.grpc import server_interceptor
+
+    interceptors.insert(0, server_interceptor(tracer_provider=tracer_provider))
+
+
 def _install_otel_grpc_interceptor(
     config: BaseConfig,
     interceptors: list,
     *,
     async_mode: bool,
 ) -> None:
-    """Insert an OpenTelemetry gRPC server interceptor at position 0.
+    """Insert OpenTelemetry gRPC server interceptors at the front of the list.
 
-    Requires a concrete ArchiPy tracer provider. Does not pass ``None`` (which
-    would fall back to the global OTEL provider).
+    Installs the contrib traces interceptor when traces are enabled and an
+    ArchiPy metrics interceptor when metrics are enabled. Does not pass
+    ``None`` providers (which would fall back to the global OTEL provider).
 
     Args:
         config: Application configuration containing OTel settings.
         interceptors: Mutable list of gRPC interceptors.
-        async_mode: When True, install the aio server interceptor.
+        async_mode: When True, install aio server interceptors.
     """
-    if not config.OTEL.IS_ENABLED or not config.OTEL.TRACES_ENABLED:
+    if not config.OTEL.IS_ENABLED:
+        return
+    if not config.OTEL.TRACES_ENABLED and not config.OTEL.METRICS_ENABLED:
         return
 
     from archipy.helpers.utils.otel_utils import OTEL_GRPC_INSTALL_HINT, OtelUtils
@@ -376,23 +422,12 @@ def _install_otel_grpc_interceptor(
         if OtelUtils.import_failed():
             return
 
-        tracer_provider = OtelUtils.tracer_provider()
-        if tracer_provider is None:
-            logger.warning(
-                "OTEL traces enabled but no tracer provider is available; skipping gRPC OTel interceptor",
-            )
-            return
-
-        if async_mode:
-            from opentelemetry.instrumentation.grpc import aio_server_interceptor
-
-            otel_interceptor = aio_server_interceptor(tracer_provider=tracer_provider)
-        else:
-            from opentelemetry.instrumentation.grpc import server_interceptor
-
-            otel_interceptor = server_interceptor(tracer_provider=tracer_provider)
-
-        interceptors.insert(0, otel_interceptor)
+        # Insert metrics first so it ends up outer after traces prepend (or alone).
+        # Final order with both: traces → metrics → exception → rate-limit → custom.
+        if config.OTEL.METRICS_ENABLED:
+            _prepend_otel_grpc_metrics_interceptor(interceptors, async_mode=async_mode)
+        if config.OTEL.TRACES_ENABLED:
+            _prepend_otel_grpc_traces_interceptor(interceptors, async_mode=async_mode)
     except ImportError:
         logger.warning("%s", OTEL_GRPC_INSTALL_HINT)
     except Exception:

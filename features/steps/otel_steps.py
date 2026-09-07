@@ -87,6 +87,7 @@ def teardown_otel_testing(context: Context) -> None:
     if not scenario_context.get("otel_enabled_for_test", False):
         return
 
+    _restore_captured_log_streams(scenario_context)
     _close_open_test_spans(scenario_context)
     OtelUtils.reset_for_testing()
     try:
@@ -97,6 +98,26 @@ def teardown_otel_testing(context: Context) -> None:
     except AssertionError:
         pass
     scenario_context.store("otel_enabled_for_test", False)
+
+
+def _restore_captured_log_streams(scenario_context) -> None:
+    """Restore ``sys.stdout`` / ``sys.stderr`` after console-log exporter scenarios."""
+    import sys
+
+    test_logger = scenario_context.get("console_test_logger")
+    if test_logger is not None:
+        test_logger.handlers.clear()
+        test_logger.propagate = True
+        scenario_context.store("console_test_logger", None)
+
+    original_stdout = scenario_context.get("original_stdout")
+    original_stderr = scenario_context.get("original_stderr")
+    if original_stdout is not None:
+        sys.stdout = original_stdout
+        scenario_context.store("original_stdout", None)
+    if original_stderr is not None:
+        sys.stderr = original_stderr
+        scenario_context.store("original_stderr", None)
 
 
 def _finished_spans(context: Context) -> list:
@@ -772,13 +793,17 @@ def _start_grpc_test_server(config, servicer):
 
 def _grpc_stub(port: int):
     import grpc
-    from opentelemetry.instrumentation.grpc import intercept_channel as otel_intercept_channel
 
     _pb2, pb2_grpc = _import_test_proto()
-    channel = otel_intercept_channel(
-        grpc.insecure_channel(f"localhost:{port}"),
-        *OtelUtils.grpc_client_interceptors(),
-    )
+    config = BaseConfig.global_config()
+    channel = grpc.insecure_channel(f"localhost:{port}")
+    if config.OTEL.IS_ENABLED and config.OTEL.TRACES_ENABLED and not OtelUtils.import_failed():
+        from opentelemetry.instrumentation.grpc import intercept_channel as otel_intercept_channel
+
+        channel = otel_intercept_channel(
+            channel,
+            *OtelUtils.grpc_client_interceptors(),
+        )
     return pb2_grpc.TestServiceStub(channel), channel
 
 
@@ -844,13 +869,9 @@ def step_when_call_instrumented_grpc(context):
     config = BaseConfig.global_config()
     pb2, pb2_grpc = _import_test_proto()
 
-    @measure_duration(name="otel.grpc.TestMethod.duration")
-    def handle(request):
-        return pb2.TestResponse(result="ok")
-
     class Servicer(pb2_grpc.TestServiceServicer):
         def TestMethod(self, request, context_):
-            return handle(request)
+            return pb2.TestResponse(result="ok")
 
     server, port = _start_grpc_test_server(config, Servicer())
     stub, channel = _grpc_stub(port)
@@ -880,10 +901,10 @@ def step_then_grpc_otel_prepended(context):
     scenario_context = get_current_scenario_context(context)
     interceptors = scenario_context.get("grpc_interceptors")
     sentinel = scenario_context.get("grpc_sentinel")
-    assert len(interceptors) == 2, f"Expected 2 interceptors, got {len(interceptors)}"
+    assert len(interceptors) >= 2, f"Expected at least 2 interceptors, got {len(interceptors)}"
+    assert interceptors[-1] is sentinel
     assert interceptors[0] is not sentinel
-    assert interceptors[1] is sentinel
-    assert "OpenTelemetry" in type(interceptors[0]).__name__
+    assert any("Otel" in type(item).__name__ or "OpenTelemetry" in type(item).__name__ for item in interceptors[:-1])
 
 
 @when("I connect a Temporal adapter with OTel enabled using a mocked Client")
@@ -1408,6 +1429,11 @@ def step_when_emit_log(context, message):
     logging.getLogger("archipy.otel.test").info(message)
 
 
+@when('I emit a WARNING log message "{message}"')
+def step_when_emit_warning_log(context, message):
+    logging.getLogger("archipy.otel.test").warning(message)
+
+
 @then('a log record containing "{message}" should be exported')
 def step_then_log_exported(context, message):
     scenario_context = get_current_scenario_context(context)
@@ -1420,6 +1446,99 @@ def step_then_log_exported(context, message):
         body = log_record.body
         bodies.append(str(body))
     assert any(message in body for body in bodies), f"Expected {message!r} in {bodies!r}"
+
+
+@given("OpenTelemetry is configured for console log export with captured streams")
+def step_given_console_logs_captured(context):
+    """Install console split exporter against StringIO streams (avoids OTel global lock)."""
+    import io
+    import sys
+
+    from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+    from opentelemetry.sdk._logs.export import SimpleLogRecordProcessor
+    from opentelemetry.sdk.resources import Resource
+
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.reset_for_testing()
+
+    stdout_buf = io.StringIO()
+    stderr_buf = io.StringIO()
+    scenario_context.store("original_stdout", sys.stdout)
+    scenario_context.store("original_stderr", sys.stderr)
+    # Exporters bind streams at construction time.
+    sys.stdout = stdout_buf
+    sys.stderr = stderr_buf
+    scenario_context.store("captured_stdout", stdout_buf)
+    scenario_context.store("captured_stderr", stderr_buf)
+
+    exporter = OtelUtils._create_console_log_exporter()
+    provider = LoggerProvider(resource=Resource.create({"service.name": "archipy-console-logs-bdd"}))
+    provider.add_log_record_processor(SimpleLogRecordProcessor(exporter))
+    OtelUtils._logger_provider = provider
+    OtelUtils._owns_logger = True
+    OtelUtils._initialized = True
+
+    # Prefer owned provider handler; also wire named test logger explicitly.
+    OtelUtils._attach_logging_handler_unlocked(logging.INFO)
+    test_logger = logging.getLogger("archipy.otel.test")
+    test_logger.handlers.clear()
+    test_logger.addHandler(LoggingHandler(level=logging.INFO, logger_provider=provider))
+    test_logger.setLevel(logging.INFO)
+    test_logger.propagate = False
+    scenario_context.store("console_test_logger", test_logger)
+    scenario_context.store("otel_enabled_for_test", True)
+
+
+@when('I build OpentelemetryConfig with LOGS_EXPORTER "{exporter}"')
+def step_when_build_bad_logs_exporter(context, exporter):
+    from pydantic import ValidationError
+
+    from archipy.configs.config_template import OpentelemetryConfig
+
+    scenario_context = get_current_scenario_context(context)
+    try:
+        OpentelemetryConfig(
+            IS_ENABLED=True,
+            TRACES_ENABLED=False,
+            METRICS_ENABLED=False,
+            LOGS_ENABLED=True,
+            LOGS_EXPORTER=exporter,
+        )
+        scenario_context.store("validation_error", None)
+    except ValidationError as exc:
+        scenario_context.store("validation_error", exc)
+
+
+@then('the captured stdout should contain "{needle}"')
+def step_then_stdout_contains(context, needle):
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.force_flush(timeout_millis=2000)
+    body = scenario_context.get("captured_stdout").getvalue()
+    assert needle in body, f"Expected {needle!r} in stdout:\n{body!r}"
+
+
+@then('the captured stderr should contain "{needle}"')
+def step_then_stderr_contains(context, needle):
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.force_flush(timeout_millis=2000)
+    body = scenario_context.get("captured_stderr").getvalue()
+    assert needle in body, f"Expected {needle!r} in stderr:\n{body!r}"
+
+
+@then('the captured stdout should not contain "{needle}"')
+def step_then_stdout_not_contains(context, needle):
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.force_flush(timeout_millis=2000)
+    body = scenario_context.get("captured_stdout").getvalue()
+    assert needle not in body, f"Did not expect {needle!r} in stdout:\n{body!r}"
+
+
+@then('the captured stderr should not contain "{needle}"')
+def step_then_stderr_not_contains(context, needle):
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.force_flush(timeout_millis=2000)
+    body = scenario_context.get("captured_stderr").getvalue()
+    assert needle not in body, f"Did not expect {needle!r} in stderr:\n{body!r}"
 
 
 @when("I simulate a process fork after OpenTelemetry init")
@@ -1552,3 +1671,210 @@ def step_when_fastapi_lifespan_cycle(context):
 def step_then_lifespan_flush(context):
     scenario_context = get_current_scenario_context(context)
     assert scenario_context.get("lifespan_flush_called") is True
+
+
+def _free_tcp_port() -> int:
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _configure_pull_metrics(context) -> None:
+    """Reset Background providers and prepare real init with metrics pull scrape."""
+    from archipy.configs.config_template import OtelMetricsExporter
+
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.reset_for_testing()
+    OtelUtils._globals_set = False
+
+    port = _free_tcp_port()
+    config = BaseConfig.global_config()
+    config.OTEL.IS_ENABLED = True
+    config.OTEL.TRACES_ENABLED = False
+    config.OTEL.METRICS_ENABLED = True
+    config.OTEL.LOGS_ENABLED = False
+    config.OTEL.METRICS_EXPORTER = OtelMetricsExporter.PULL
+    config.OTEL.METRICS_PULL_HOST = "127.0.0.1"
+    config.OTEL.METRICS_PULL_PORT = port
+    config.OTEL.SYSTEM_METRICS_ENABLED = False
+    config.OTEL.PROTOCOL = "http/protobuf"
+    config.OTEL.OTLP_ENDPOINT = "http://127.0.0.1:4318"
+    config.OTEL.SERVICE_NAME = "archipy-pull-bdd"
+
+    scenario_context.store("metrics_pull_port", port)
+    scenario_context.store("otel_enabled_for_test", True)
+
+
+@given("OpenTelemetry is configured for pull-only metrics on an ephemeral port")
+def step_given_pull_only(context):
+    _configure_pull_metrics(context)
+
+
+@given("OpenTelemetry is configured for OTLP-only metrics with pull port reserved")
+def step_given_otlp_only_reserved_port(context):
+    from archipy.configs.config_template import OtelMetricsExporter
+
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.reset_for_testing()
+    OtelUtils._globals_set = False
+
+    port = _free_tcp_port()
+    config = BaseConfig.global_config()
+    config.OTEL.IS_ENABLED = True
+    config.OTEL.TRACES_ENABLED = False
+    config.OTEL.METRICS_ENABLED = True
+    config.OTEL.LOGS_ENABLED = False
+    config.OTEL.METRICS_EXPORTER = OtelMetricsExporter.OTLP
+    config.OTEL.METRICS_PULL_HOST = "127.0.0.1"
+    config.OTEL.METRICS_PULL_PORT = port
+    config.OTEL.SYSTEM_METRICS_ENABLED = False
+    config.OTEL.PROTOCOL = "http/protobuf"
+    config.OTEL.OTLP_ENDPOINT = "http://127.0.0.1:4318"
+    config.OTEL.SERVICE_NAME = "archipy-otlp-bdd"
+
+    scenario_context.store("metrics_pull_port", port)
+    scenario_context.store("otel_enabled_for_test", True)
+
+
+@given("OpenTelemetry is configured for production init with system metrics disabled")
+def step_given_system_metrics_off(context):
+    from archipy.configs.config_template import OtelMetricsExporter
+
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.reset_for_testing()
+    OtelUtils._globals_set = False
+
+    config = BaseConfig.global_config()
+    config.OTEL.IS_ENABLED = True
+    config.OTEL.TRACES_ENABLED = False
+    config.OTEL.METRICS_ENABLED = True
+    config.OTEL.LOGS_ENABLED = False
+    config.OTEL.METRICS_EXPORTER = OtelMetricsExporter.OTLP
+    config.OTEL.SYSTEM_METRICS_ENABLED = False
+    config.OTEL.PROTOCOL = "http/protobuf"
+    config.OTEL.OTLP_ENDPOINT = "http://127.0.0.1:4318"
+    config.OTEL.SERVICE_NAME = "archipy-sysmetrics-bdd"
+    scenario_context.store("otel_enabled_for_test", True)
+
+
+@when("I initialize OpenTelemetry providers from config")
+def step_when_init_from_config(context):
+    OtelUtils.init_otel_if_needed(BaseConfig.global_config())
+    scenario_context = get_current_scenario_context(context)
+    scenario_context.store("otel_enabled_for_test", True)
+
+
+@when("I initialize OpenTelemetry providers from config twice")
+def step_when_init_from_config_twice(context):
+    config = BaseConfig.global_config()
+    OtelUtils.init_otel_if_needed(config)
+    OtelUtils.init_otel_if_needed(config)
+    scenario_context = get_current_scenario_context(context)
+    scenario_context.store("otel_enabled_for_test", True)
+
+
+@when('I call a measured sync function named "{instrument_name}"')
+def step_when_call_named_measured(context, instrument_name):
+    scenario_context = get_current_scenario_context(context)
+
+    @measure_duration(name=instrument_name)
+    def measured() -> str:
+        return "ok"
+
+    assert measured() == "ok"
+    scenario_context.store("measured_sync", measured)
+
+
+@given('a sync function decorated with measure_duration named "{instrument_name}" that raises NotFoundError')
+def step_given_measure_not_found(context, instrument_name):
+    scenario_context = get_current_scenario_context(context)
+
+    @measure_duration(name=instrument_name)
+    def measured() -> str:
+        raise NotFoundError(resource_type="user")
+
+    scenario_context.store("measured_sync", measured)
+
+
+@when("I call the measured sync function and it fails with NotFoundError")
+def step_when_measured_fails_not_found(context):
+    scenario_context = get_current_scenario_context(context)
+    try:
+        scenario_context.get("measured_sync")()
+    except NotFoundError as exc:
+        scenario_context.store("measured_error", exc)
+    else:
+        scenario_context.store("measured_error", None)
+    assert isinstance(scenario_context.get("measured_error"), NotFoundError)
+
+
+@when('I build OpentelemetryConfig with METRICS_EXPORTER "{exporter}"')
+def step_when_build_bad_metrics_exporter(context, exporter):
+    from pydantic import ValidationError
+
+    from archipy.configs.config_template import OpentelemetryConfig
+
+    scenario_context = get_current_scenario_context(context)
+    try:
+        OpentelemetryConfig(
+            IS_ENABLED=True,
+            TRACES_ENABLED=False,
+            METRICS_ENABLED=True,
+            LOGS_ENABLED=False,
+            METRICS_EXPORTER=exporter,
+        )
+        scenario_context.store("validation_error", None)
+    except ValidationError as exc:
+        scenario_context.store("validation_error", exc)
+
+
+@then('a ValidationError should be raised for field "{field_name}"')
+def step_then_validation_error_for_field(context, field_name):
+    scenario_context = get_current_scenario_context(context)
+    err = scenario_context.get("validation_error")
+    assert err is not None, "Expected ValidationError"
+    locations = [str(loc) for error in err.errors() for loc in error.get("loc", ())]
+    assert field_name in locations, f"Expected field {field_name!r} in {locations!r}"
+
+
+@then('the metrics pull scrape endpoint should return 200 containing "{needle}"')
+def step_then_scrape_contains(context, needle):
+    import urllib.request
+
+    scenario_context = get_current_scenario_context(context)
+    port = scenario_context.get("metrics_pull_port")
+    url = f"http://127.0.0.1:{port}/metrics"
+    with urllib.request.urlopen(url, timeout=2) as response:
+        assert response.status == 200
+        body = response.read().decode()
+    assert needle in body, f"Expected {needle!r} in scrape body:\n{body[:2000]}"
+
+
+@then("the metrics pull scrape endpoint should return 200")
+def step_then_scrape_200(context):
+    import urllib.request
+
+    scenario_context = get_current_scenario_context(context)
+    port = scenario_context.get("metrics_pull_port")
+    url = f"http://127.0.0.1:{port}/metrics"
+    with urllib.request.urlopen(url, timeout=2) as response:
+        assert response.status == 200
+
+
+@then("the metrics pull scrape port should refuse connections")
+def step_then_scrape_refused(context):
+    import socket
+
+    scenario_context = get_current_scenario_context(context)
+    port = scenario_context.get("metrics_pull_port")
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(1)
+        result = sock.connect_ex(("127.0.0.1", port))
+    assert result != 0, f"Expected port {port} closed, but connect succeeded"
+
+
+@then("system CPU metric instruments should be absent")
+def step_then_no_system_metrics(context):
+    assert "system_metrics" not in OtelUtils._instrumented_libraries

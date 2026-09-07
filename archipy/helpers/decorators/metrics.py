@@ -10,7 +10,7 @@ import time
 from typing import TYPE_CHECKING, Any, Protocol
 
 from archipy.configs.base_config import BaseConfig
-from archipy.helpers.utils.otel_utils import OtelUtils
+from archipy.helpers.utils.otel_utils import DURATION_HISTOGRAM_BUCKETS_S, OtelUtils
 from archipy.models.errors import InvalidArgumentError
 
 if TYPE_CHECKING:
@@ -122,7 +122,12 @@ def _get_or_create_histogram(
         if histogram is not None:
             return histogram
         meter = OtelUtils.get_meter(module)
-        histogram = meter.create_histogram(instrument_name, unit=unit)
+        histogram = meter.create_histogram(
+            instrument_name,
+            unit=unit,
+            description="Function execution duration",
+            explicit_bucket_boundaries_advisory=DURATION_HISTOGRAM_BUCKETS_S,
+        )
         _HISTOGRAM_CACHE[cache_key] = histogram
         return histogram
 
@@ -149,7 +154,10 @@ def _get_or_create_counter(
         if counter is not None:
             return counter
         meter = OtelUtils.get_meter(module)
-        counter = meter.create_counter(instrument_name)
+        counter = meter.create_counter(
+            instrument_name,
+            description="Function call count",
+        )
         _COUNTER_CACHE[cache_key] = counter
         return counter
 
@@ -206,8 +214,8 @@ def measure_duration[F: _Function](
             status = "ok"
             try:
                 return func(*args, **kwargs)
-            except Exception:
-                status = "error"
+            except Exception as exc:
+                status = OtelUtils.metric_status_for_exception(exc)
                 raise
             finally:
                 histogram.record(
@@ -268,8 +276,8 @@ def async_measure_duration[F: _AsyncFunction](
             except asyncio.CancelledError:
                 status = "cancelled"
                 raise
-            except Exception:
-                status = "error"
+            except Exception as exc:
+                status = OtelUtils.metric_status_for_exception(exc)
                 raise
             finally:
                 histogram.record(
@@ -331,8 +339,8 @@ def count_calls[F: _Function](
             status = "ok"
             try:
                 return func(*args, **kwargs)
-            except Exception:
-                status = "error"
+            except Exception as exc:
+                status = OtelUtils.metric_status_for_exception(exc)
                 raise
             finally:
                 counter.add(1, _merge_status_attributes(attributes, status))
@@ -387,8 +395,8 @@ def async_count_calls[F: _AsyncFunction](
             except asyncio.CancelledError:
                 status = "cancelled"
                 raise
-            except Exception:
-                status = "error"
+            except Exception as exc:
+                status = OtelUtils.metric_status_for_exception(exc)
                 raise
             finally:
                 counter.add(1, _merge_status_attributes(attributes, status))

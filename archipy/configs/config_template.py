@@ -29,6 +29,26 @@ class RedisMode(StrEnum):
     CLUSTER = "CLUSTER"
 
 
+class OtelMetricsExporter(StrEnum):
+    """Unique metrics export mode for OpenTelemetry.
+
+    Exactly one exporter is active when ``METRICS_ENABLED`` is true.
+    """
+
+    OTLP = "otlp"
+    PULL = "pull"
+
+
+class OtelLogsExporter(StrEnum):
+    """Unique logs export mode for OpenTelemetry.
+
+    Exactly one exporter is active when ``LOGS_ENABLED`` is true.
+    """
+
+    CONSOLE = "console"
+    OTLP = "otlp"
+
+
 class ElasticsearchConfig(BaseModel):
     """Configuration settings for Elasticsearch connections and operations.
 
@@ -873,6 +893,13 @@ class OpentelemetryConfig(BaseModel):
     TRACES_ENABLED: bool = Field(default=True, description="Export traces when OTel is enabled")
     METRICS_ENABLED: bool = Field(default=True, description="Export metrics when OTel is enabled")
     LOGS_ENABLED: bool = Field(default=True, description="Export logs when OTel is enabled")
+    LOGS_EXPORTER: OtelLogsExporter = Field(
+        default=OtelLogsExporter.CONSOLE,
+        description=(
+            "Unique logs exporter when LOGS_ENABLED is true: "
+            "console (stdout for INFO/DEBUG, stderr for WARNING+) or otlp"
+        ),
+    )
     SERVICE_NAME: str | None = Field(default=None, description="OTel resource service.name")
     OTLP_ENDPOINT: HttpUrl = Field(
         default=HttpUrl("http://localhost:4317"),
@@ -916,7 +943,25 @@ class OpentelemetryConfig(BaseModel):
     METRIC_EXPORT_INTERVAL_MS: int = Field(
         default=60000,
         ge=1000,
-        description="Periodic metric export interval in milliseconds",
+        description="Periodic OTLP metric export interval in milliseconds (used when METRICS_EXPORTER=otlp)",
+    )
+    METRICS_EXPORTER: OtelMetricsExporter = Field(
+        default=OtelMetricsExporter.OTLP,
+        description="Unique metrics exporter when METRICS_ENABLED is true (otlp or pull)",
+    )
+    METRICS_PULL_HOST: str = Field(
+        default="0.0.0.0",  # noqa: S104 — intentional scrape bind-all default; override via env
+        description="Bind host for the metrics pull scrape server when METRICS_EXPORTER=pull",
+    )
+    METRICS_PULL_PORT: int = Field(
+        default=8200,
+        ge=1,
+        le=65535,
+        description="Bind port for the metrics pull scrape server (/metrics)",
+    )
+    SYSTEM_METRICS_ENABLED: bool = Field(
+        default=True,
+        description="Instrument process/system metrics when METRICS_ENABLED is true",
     )
     ENVIRONMENT: str | None = Field(
         default=None,
@@ -929,15 +974,15 @@ class OpentelemetryConfig(BaseModel):
     LOGS_LEVEL: str = Field(
         default="INFO",
         description=(
-            "Minimum level for the OTLP LoggingHandler on the root logger. "
+            "Minimum level for the LoggingHandler on the root logger. "
             "Records from opentelemetry.* loggers are filtered to avoid feedback loops. "
-            "Prefer WARNING+ in production to limit export volume."
+            "Prefer WARNING+ in production when LOGS_EXPORTER=otlp to limit export volume."
         ),
     )
 
     @model_validator(mode="after")
     def validate_otel_config(self) -> Self:
-        """Validate signal switches and log level."""
+        """Validate signal switches, metrics exporters, and log level."""
         if self.IS_ENABLED and not (self.TRACES_ENABLED or self.METRICS_ENABLED or self.LOGS_ENABLED):
             raise ConfigurationError(
                 operation="otel",
