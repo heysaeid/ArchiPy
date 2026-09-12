@@ -43,7 +43,6 @@ Canonical policies live in `.cursor/rules/`. Start with `rules-index.mdc` for ow
 | Commits / PRs              | `contributing.mdc`                                         |
 | Tooling                    | `tooling-workflow.mdc`                                     |
 | Docs / changelog / release | `documentation.mdc`, `changelog.mdc`, `github-release.mdc` |
-| Code exploration           | `graphify.mdc`                                             |
 
 ## Linting Exclusions
 

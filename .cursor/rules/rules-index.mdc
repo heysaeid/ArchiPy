@@ -24,7 +24,6 @@ When guidance conflicts, prefer the **canonical owner** for that topic. More spe
 | Security / Bandit / nosec | `security.mdc` | always |
 | Commits, branches, PRs/MRs | `contributing.mdc` | always |
 | uv / Make / pre-commit | `tooling-workflow.mdc` | always |
-| Code exploration via graphify | `graphify.mdc` | always |
 | Agent quick start | `AGENTS.md` (repo root) | always (manual) |
 
 ## Conflict Resolution
