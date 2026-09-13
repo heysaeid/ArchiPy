@@ -1,5 +1,7 @@
 """Kafka adapter implementations for ArchiPy."""
 
+from __future__ import annotations
+
 import contextlib
 import logging
 from typing import TYPE_CHECKING, NoReturn, override

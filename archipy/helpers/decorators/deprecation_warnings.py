@@ -1,5 +1,7 @@
 """Decorators that warn on deprecated usage."""
 
+from __future__ import annotations
+
 import warnings
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar

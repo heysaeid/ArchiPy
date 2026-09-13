@@ -1,5 +1,7 @@
 """Timeout decorator helpers."""
 
+from __future__ import annotations
+
 import signal
 from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar

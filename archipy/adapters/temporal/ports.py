@@ -5,6 +5,8 @@ operations, providing a standardized contract for workflow orchestration within
 the ArchiPy architecture.
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, TypeVar
 

@@ -42,6 +42,11 @@ Feature: Error Handling
     When the error is captured
     Then it should be logged
 
+  @unit
+  Scenario: Public error constructors stay inspectable at runtime
+    When I inspect constructors of public BaseError subclasses
+    Then all constructor signatures resolve without NameError
+
   # === FastAPI Error Handling ===
 
   @fastapi

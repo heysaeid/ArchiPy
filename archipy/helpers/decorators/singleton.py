@@ -1,5 +1,7 @@
 """Singleton decorator helpers."""
 
+from __future__ import annotations
+
 import threading
 from typing import TYPE_CHECKING, Any
 

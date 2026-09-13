@@ -1,5 +1,7 @@
 """Password hashing and validation utilities."""
 
+from __future__ import annotations
+
 # src/helpers/password_helper.py
 import hashlib
 import hmac

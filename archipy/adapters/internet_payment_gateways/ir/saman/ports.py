@@ -1,5 +1,7 @@
 """Port interfaces for Saman IPG operations."""
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 

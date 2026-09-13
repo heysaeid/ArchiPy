@@ -1,5 +1,7 @@
 """System-level error types."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:

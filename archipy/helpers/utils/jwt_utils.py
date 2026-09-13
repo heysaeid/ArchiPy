@@ -4,6 +4,8 @@ This module provides a robust JWT handling implementation with support for acces
 cryptographic security, token validation, and comprehensive error handling.
 """
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 from uuid import UUID, uuid4
 

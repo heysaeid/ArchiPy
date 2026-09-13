@@ -5,6 +5,8 @@ orchestration, including worker lifecycle management, task queue assignment,
 and integration with ArchiPy service adapters.
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import timedelta

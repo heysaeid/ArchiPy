@@ -1,5 +1,7 @@
 """Date and time utility helpers."""
 
+from __future__ import annotations
+
 import time
 from datetime import UTC, date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, ClassVar

@@ -1,5 +1,7 @@
 """Keycloak utility helpers."""
 
+from __future__ import annotations
+
 import functools
 import logging
 from contextvars import ContextVar

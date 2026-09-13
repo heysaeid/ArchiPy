@@ -1,5 +1,6 @@
 """Step definitions for error handling tests."""
 
+import inspect
 from http import HTTPStatus
 from typing import ClassVar
 from unittest.mock import patch
@@ -8,6 +9,7 @@ from behave import given, then, when
 from pydantic import BaseModel
 from starlette.testclient import TestClient
 
+import archipy.models.errors as errors_pkg
 from archipy.helpers.utils.error_utils import ErrorUtils
 from archipy.models.errors import (
     AlreadyExistsError,
@@ -149,6 +151,28 @@ def step_when_error_is_captured(context):
     with patch("archipy.helpers.utils.error_utils.logger.error") as mock_log:
         ErrorUtils.capture_exception(error)
         scenario_context.store("log_called", mock_log.called)
+
+
+@when("I inspect constructors of public BaseError subclasses")
+def step_when_inspect_public_error_constructors(context):
+    scenario_context = get_current_scenario_context(context)
+    failures: list[str] = []
+    for name in errors_pkg.__all__:
+        obj = getattr(errors_pkg, name)
+        if not isinstance(obj, type) or not issubclass(obj, BaseError):
+            continue
+        try:
+            inspect.signature(obj.__init__)
+        except NameError as e:
+            failures.append(f"{name}: {e}")
+    scenario_context.store("constructor_inspect_failures", failures)
+
+
+@then("all constructor signatures resolve without NameError")
+def step_then_constructor_signatures_resolve(context):
+    scenario_context = get_current_scenario_context(context)
+    failures = scenario_context.get("constructor_inspect_failures")
+    assert not failures, "Constructor annotation inspection failed:\n" + "\n".join(failures)
 
 
 @when("an error detail is created")
@@ -596,7 +620,9 @@ def step_when_sync_grpc_raises_validation_error_with_lang(context, error_type: s
 
 
 @when('an async gRPC method raises "{error_type}" validation error with value "{invalid_value}" in language "{lang}"')
-async def step_when_async_grpc_raises_validation_error_with_lang(context, error_type: str, invalid_value: str, lang: str):
+async def step_when_async_grpc_raises_validation_error_with_lang(
+    context, error_type: str, invalid_value: str, lang: str,
+):
     scenario_context = get_current_scenario_context(context)
 
     error_class = ERROR_MAPPING.get(error_type)
@@ -719,9 +745,9 @@ def step_then_check_response_error_code(context, error_code: str):
     response_data = response.json()
 
     assert "error" in response_data, "Response should contain 'error' key"
-    assert (
-        response_data["error"] == error_code
-    ), f"Expected error code '{error_code}', but got '{response_data['error']}'"
+    assert response_data["error"] == error_code, (
+        f"Expected error code '{error_code}', but got '{response_data['error']}'"
+    )
 
 
 @then('the response should contain message "{expected_message}"')
@@ -735,9 +761,9 @@ def step_then_check_message(context, expected_message: str):
     actual_message = response_data["detail"]["message"]
     expected_lower = expected_message.lower()
     actual_lower = actual_message.lower()
-    assert (
-        expected_lower in actual_lower or actual_lower in expected_lower
-    ), f"Expected message to contain '{expected_message}', but got '{actual_message}'"
+    assert expected_lower in actual_lower or actual_lower in expected_lower, (
+        f"Expected message to contain '{expected_message}', but got '{actual_message}'"
+    )
 
 
 @then('the response JSON should have structure with "{key1}" and "{key2}" keys')
@@ -807,9 +833,9 @@ def step_then_check_json_nested_key_value_string(context, key_path: str, sub_key
 
     try:
         expected_value = int(value)
-        assert (
-            actual_value == expected_value
-        ), f"Expected '{key_path}.{sub_key}' to be {expected_value}, but got {actual_value}"
+        assert actual_value == expected_value, (
+            f"Expected '{key_path}.{sub_key}' to be {expected_value}, but got {actual_value}"
+        )
     except ValueError:
         assert str(actual_value) == value, f"Expected '{key_path}.{sub_key}' to be '{value}', but got '{actual_value}'"
 
@@ -833,9 +859,9 @@ def step_then_check_json_nested_key_value_numeric(context, key_path: str, sub_ke
     actual_int = int(actual_value) if actual_value is not None else None
     expected_int = int(value)
 
-    assert (
-        actual_int == expected_int
-    ), f"Expected '{key_path}.{sub_key}' to be {expected_int} (type: {type(expected_int).__name__}), but got {actual_value} (type: {type(actual_value).__name__})"
+    assert actual_int == expected_int, (
+        f"Expected '{key_path}.{sub_key}' to be {expected_int} (type: {type(expected_int).__name__}), but got {actual_value} (type: {type(actual_value).__name__})"
+    )
 
 
 @then('the response detail should contain "{key}"')
@@ -893,9 +919,9 @@ def step_then_check_message_language(context, lang: str):
             error_instance = error_class(lang=language)
             expected_message = error_instance.get_message()
             actual_message = response_data.get("detail", {}).get("message", "")
-            assert (
-                expected_message == actual_message
-            ), f"Expected message '{expected_message}', but got '{actual_message}'"
+            assert expected_message == actual_message, (
+                f"Expected message '{expected_message}', but got '{actual_message}'"
+            )
 
 
 @then('the message should match the expected "{lang}" message')
@@ -912,9 +938,9 @@ def step_then_check_expected_message(context, lang: str):
             error_instance = error_class(lang=language)
             expected_message = error_instance.get_message()
             actual_message = response_data.get("detail", {}).get("message", "")
-            assert (
-                expected_message == actual_message
-            ), f"Expected message '{expected_message}', but got '{actual_message}'"
+            assert expected_message == actual_message, (
+                f"Expected message '{expected_message}', but got '{actual_message}'"
+            )
 
 
 @then("the response detail should contain the additional data fields")
@@ -939,9 +965,9 @@ def step_then_check_message_contains(context, expected_message_part: str):
     response_data = response.json()
     message = response_data.get("detail", {}).get("message", "")
 
-    assert (
-        expected_message_part.lower() in message.lower()
-    ), f"Expected message to contain '{expected_message_part}', but got '{message}'"
+    assert expected_message_part.lower() in message.lower(), (
+        f"Expected message to contain '{expected_message_part}', but got '{message}'"
+    )
 
 
 @then("the gRPC call should fail with status code {grpc_status}")
@@ -957,9 +983,9 @@ def step_then_check_grpc_status(context, grpc_status: str):
         actual_status = error_info["code"]
         assert actual_status == expected_status, f"Expected gRPC status {expected_status}, but got {actual_status}"
     elif error:
-        assert (
-            error.grpc_status == expected_status
-        ), f"Expected gRPC status {expected_status}, but got {error.grpc_status}"
+        assert error.grpc_status == expected_status, (
+            f"Expected gRPC status {expected_status}, but got {error.grpc_status}"
+        )
     else:
         assert False, "No gRPC error found to verify status code"
 
@@ -975,16 +1001,16 @@ def step_then_check_error_message(context, expected_message: str):
         actual_message = error_info["details"]
         expected_lower = expected_message.lower()
         actual_lower = actual_message.lower()
-        assert (
-            expected_lower in actual_lower or actual_lower in expected_lower
-        ), f"Expected message to contain '{expected_message}', but got '{actual_message}'"
+        assert expected_lower in actual_lower or actual_lower in expected_lower, (
+            f"Expected message to contain '{expected_message}', but got '{actual_message}'"
+        )
     elif error:
         actual_message = error.get_message()
         expected_lower = expected_message.lower()
         actual_lower = actual_message.lower()
-        assert (
-            expected_lower in actual_lower or actual_lower in expected_lower
-        ), f"Expected message to contain '{expected_message}', but got '{actual_message}'"
+        assert expected_lower in actual_lower or actual_lower in expected_lower, (
+            f"Expected message to contain '{expected_message}', but got '{actual_message}'"
+        )
     else:
         assert False, "No gRPC error found to verify message"
 

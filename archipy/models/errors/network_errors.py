@@ -1,5 +1,7 @@
 """Network-related error types."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:

@@ -5,6 +5,8 @@ integrating with the Temporal workflow engine while following ArchiPy patterns
 and conventions.
 """
 
+from __future__ import annotations
+
 from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, override

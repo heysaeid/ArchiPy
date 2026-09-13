@@ -1,5 +1,7 @@
 """Elasticsearch adapter implementations for ArchiPy."""
 
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING, Any, override
 

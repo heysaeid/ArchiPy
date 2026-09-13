@@ -4,6 +4,8 @@ This module provides functionality for generating and verifying TOTP codes that 
 commonly used for multi-factor authentication.
 """
 
+from __future__ import annotations
+
 import base64
 import hmac
 import secrets  # Using secrets instead of random for cryptographic operations

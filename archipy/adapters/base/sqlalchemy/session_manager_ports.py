@@ -1,5 +1,7 @@
 """Port interfaces for SQLAlchemy session managers."""
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from typing import TYPE_CHECKING
 

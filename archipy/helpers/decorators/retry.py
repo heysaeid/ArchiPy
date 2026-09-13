@@ -1,5 +1,7 @@
 """Retry decorator helpers."""
 
+from __future__ import annotations
+
 import logging
 import time
 from typing import TYPE_CHECKING, ParamSpec, TypeVar

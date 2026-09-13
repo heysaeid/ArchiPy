@@ -5,6 +5,8 @@ and activities within the ArchiPy architecture, including integration with exist
 adapters and standardized patterns.
 """
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, TypeVar

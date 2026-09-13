@@ -4,6 +4,8 @@ This module provides decorators for managing SQLAlchemy transactions with automa
 and support for different database types (PostgreSQL, SQLite, StarRocks, MySQL).
 """
 
+from __future__ import annotations
+
 import logging
 from functools import partial, wraps
 from typing import TYPE_CHECKING, Any, Literal, NoReturn, TypeVar, cast, overload
