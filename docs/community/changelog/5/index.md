@@ -10,6 +10,7 @@ description: "Release history for ArchiPy 5.x series"
 
 | Version           | Date       | Summary                                                                              |
 |-------------------|------------|--------------------------------------------------------------------------------------|
+| [5.2.4](5.2.4.md) | 2026-09-13 | MySQL session manager 3.14 DI wire NameError; Keycloak userinfo cache maxsize 200    |
 | [5.2.3](5.2.3.md) | 2026-09-13 | Python 3.14 `inspect.signature` / DI wire NameError on TYPE_CHECKING annotations     |
 | [5.2.2](5.2.2.md) | 2026-09-07 | Explicit W3C TraceContext propagator; async gRPC metrics and log↔trace BDD           |
 | [5.2.1](5.2.1.md) | 2026-09-07 | Fix OTel BDD exporter config leak across scenarios                                   |
