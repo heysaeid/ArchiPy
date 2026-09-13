@@ -173,7 +173,7 @@ class KeycloakAuthMixin(SyncKeycloakMixinBase):
         else:
             return result
 
-    @ttl_cache_decorator(ttl_seconds=30, maxsize=100)  # Cache for 30 seconds
+    @ttl_cache_decorator(ttl_seconds=30, maxsize=200)  # Cache for 30 seconds
     def _get_userinfo_cached(self, token: str) -> KeycloakUserType:
         return _normalize_userinfo(self._openid_adapter.userinfo(token))
 
@@ -471,7 +471,7 @@ class AsyncKeycloakAuthMixin(AsyncKeycloakMixinBase):
         except KeycloakError as e:
             self._handle_keycloak_exception(e, "get_userinfo")
 
-    @alru_cache(ttl=30, maxsize=100)  # Cache for 30 seconds
+    @alru_cache(ttl=30, maxsize=200)  # Cache for 30 seconds
     async def _get_userinfo_cached(self, token: str) -> KeycloakUserType:
         return _normalize_userinfo(await self.openid_adapter.a_userinfo(token))
 
