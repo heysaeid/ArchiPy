@@ -5,6 +5,8 @@ atomic transaction scenarios.
 """
 
 import asyncio
+import importlib
+import inspect
 import logging
 import os
 import tempfile
@@ -545,6 +547,32 @@ def step_then_session_should_remain_usable(context):
     # Execute the function and verify the result
     result = verify_session_usable()
     assert result, "Session is not usable after transaction rollback"
+
+
+@when("I inspect callables of the {db_type} SQLAlchemy session manager module")
+def step_when_inspect_session_manager_module_callables(context, db_type):
+    scenario_context = get_current_scenario_context(context)
+    module = importlib.import_module(f"archipy.adapters.{db_type}.sqlalchemy.session_managers")
+    failures: list[str] = []
+    for name, obj in vars(module).items():
+        members = vars(obj).items() if isinstance(obj, type) else [(None, obj)]
+        for member_name, member in members:
+            func = member.__func__ if isinstance(member, (staticmethod, classmethod)) else member
+            if not inspect.isfunction(func):
+                continue
+            label = name if member_name is None else f"{name}.{member_name}"
+            try:
+                inspect.signature(func)
+            except NameError as e:
+                failures.append(f"{label}: {e}")
+    scenario_context.store("session_manager_inspect_failures", failures)
+
+
+@then("all session manager callable signatures resolve without NameError")
+def step_then_session_manager_signatures_resolve(context):
+    scenario_context = get_current_scenario_context(context)
+    failures = scenario_context.get("session_manager_inspect_failures")
+    assert not failures, "Session manager annotation inspection failed:\n" + "\n".join(failures)
 
 
 @when("nested atomic transactions are attempted on StarRocks")
