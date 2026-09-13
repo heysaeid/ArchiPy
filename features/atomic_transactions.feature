@@ -205,6 +205,18 @@ Feature: SQLAlchemy Atomic Transactions
       | sqlite  |
       | mysql   |
 
+  @unit
+  Scenario Outline: SQLAlchemy session manager callables stay inspectable at runtime
+    When I inspect callables of the <db_type> SQLAlchemy session manager module
+    Then all session manager callable signatures resolve without NameError
+
+    Examples:
+      | db_type   |
+      | postgres  |
+      | sqlite    |
+      | mysql     |
+      | starrocks |
+
   # StarRocks SQL transaction limitations (shared-nothing allin1): nested ArchiPy
   # blocks share one txn and hit multi-insert; no multiple same-table inserts;
   # no further DML on a table already modified in the same txn.

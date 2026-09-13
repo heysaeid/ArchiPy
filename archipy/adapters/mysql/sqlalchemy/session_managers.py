@@ -1,5 +1,7 @@
 """MySQL SQLAlchemy session manager implementations."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, override
 
 from sqlalchemy import URL
