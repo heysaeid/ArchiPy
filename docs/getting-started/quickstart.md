@@ -51,19 +51,21 @@ class AppConfig(BaseConfig):
     """Service-level configuration.
 
     All ArchiPy config sections (REDIS, FASTAPI, etc.) are inherited.
-    Override `customize` to set service-specific defaults.
+    Set APP_NAME so customize() fills OTEL, FastAPI title, JWT issuer, and Temporal identity.
+    Override `customize` for other service-specific defaults.
     """
+
+    APP_NAME: str = "my-service"
 
     def customize(self) -> None:
         """Apply service-specific configuration overrides."""
         super().customize()
-        self.FASTAPI.PROJECT_NAME = "my-service"
         self.FASTAPI.RELOAD = self.ENVIRONMENT == EnvironmentType.LOCAL
 
 
 config = AppConfig()
 BaseConfig.set_global(config)
-logger.info("Config loaded for environment: %s", config.ENVIRONMENT)
+logger.info("Config loaded for %s (env=%s)", config.APP_NAME, config.ENVIRONMENT)
 ```
 
 ## Step 4 — Connect to Redis

@@ -16,6 +16,7 @@ across services like databases, Redis, and email.
 from archipy.configs.base_config import BaseConfig
 
 class AppConfig(BaseConfig):
+    # APP_NAME is built-in; override the default None for this service
     APP_NAME: str = "MyService"
     DEBUG: bool = False
     DB_HOST: str = "localhost"

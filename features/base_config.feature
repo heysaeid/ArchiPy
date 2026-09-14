@@ -18,6 +18,7 @@ Feature: Base Configuration System
 
     Examples:
       | attribute  |
+      | APP_NAME   |
       | AUTH       |
       | ELASTIC    |
       | REDIS      |
@@ -48,3 +49,16 @@ Feature: Base Configuration System
     Given a running Vault instance with an invalid token
     When BaseConfig is initialized with Vault enabled
     Then a ConfigurationError should be raised
+
+  Scenario: APP_NAME syncs into nested identity fields on set_global
+    Given a BaseConfig with APP_NAME "my-service" and nested identity defaults
+    When the global configuration is set
+    Then OTEL.SERVICE_NAME should be "my-service"
+    And FASTAPI.PROJECT_NAME should be "my-service"
+    And AUTH.JWT_ISSUER should be "my-service"
+    And TEMPORAL.CLIENT_IDENTITY should be "my-service"
+
+  Scenario: Explicit nested identity overrides win over APP_NAME
+    Given a BaseConfig with APP_NAME "my-service" and OTEL.SERVICE_NAME "other"
+    When the global configuration is set
+    Then OTEL.SERVICE_NAME should be "other"

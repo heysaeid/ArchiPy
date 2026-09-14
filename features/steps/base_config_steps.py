@@ -19,8 +19,10 @@ def step_given_custom_base_config(context):
 @when("the global configuration is set")
 def step_when_set_global_config(context):
     scenario_context = get_current_scenario_context(context)
-    test_config = BaseConfig.global_config()
+    pending = scenario_context.get("pending_global_config")
+    test_config = pending if pending is not None else BaseConfig.global_config()
     BaseConfig.set_global(test_config)
+    scenario_context.store("pending_global_config", None)
 
 
 @then("retrieving global configuration should return the same instance")
@@ -189,3 +191,48 @@ def step_then_configuration_error(context):
     assert isinstance(error, ConfigurationError) or "Vault" in str(error) or "vault" in str(error).lower(), (
         f"Expected ConfigurationError-like failure, got {type(error)}: {error}"
     )
+
+
+@given('a BaseConfig with APP_NAME "{app_name}" and nested identity defaults')
+def step_given_app_name_with_identity_defaults(context, app_name):
+    scenario_context = get_current_scenario_context(context)
+    config = TestConfig()
+    config.APP_NAME = app_name
+    config.OTEL.SERVICE_NAME = None
+    config.FASTAPI.PROJECT_NAME = "project_name"
+    config.AUTH.JWT_ISSUER = "your-app-name"
+    config.TEMPORAL.CLIENT_IDENTITY = None
+    scenario_context.store("pending_global_config", config)
+
+
+@given('a BaseConfig with APP_NAME "{app_name}" and OTEL.SERVICE_NAME "{service_name}"')
+def step_given_app_name_with_otel_override(context, app_name, service_name):
+    scenario_context = get_current_scenario_context(context)
+    config = TestConfig()
+    config.APP_NAME = app_name
+    config.OTEL.SERVICE_NAME = service_name
+    scenario_context.store("pending_global_config", config)
+
+
+@then('OTEL.SERVICE_NAME should be "{expected}"')
+def step_then_otel_service_name(context, expected):
+    actual = BaseConfig.global_config().OTEL.SERVICE_NAME
+    assert actual == expected, f"Expected OTEL.SERVICE_NAME={expected!r}, got {actual!r}"
+
+
+@then('FASTAPI.PROJECT_NAME should be "{expected}"')
+def step_then_fastapi_project_name(context, expected):
+    actual = BaseConfig.global_config().FASTAPI.PROJECT_NAME
+    assert actual == expected, f"Expected FASTAPI.PROJECT_NAME={expected!r}, got {actual!r}"
+
+
+@then('AUTH.JWT_ISSUER should be "{expected}"')
+def step_then_auth_jwt_issuer(context, expected):
+    actual = BaseConfig.global_config().AUTH.JWT_ISSUER
+    assert actual == expected, f"Expected AUTH.JWT_ISSUER={expected!r}, got {actual!r}"
+
+
+@then('TEMPORAL.CLIENT_IDENTITY should be "{expected}"')
+def step_then_temporal_client_identity(context, expected):
+    actual = BaseConfig.global_config().TEMPORAL.CLIENT_IDENTITY
+    assert actual == expected, f"Expected TEMPORAL.CLIENT_IDENTITY={expected!r}, got {actual!r}"

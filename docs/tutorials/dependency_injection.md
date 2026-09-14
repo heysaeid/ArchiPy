@@ -58,6 +58,7 @@ class AppConfig(BaseConfig):
     """Application-level configuration.
 
     Inherits all ArchiPy default config sections (REDIS, POSTGRES_SQLALCHEMY, etc.).
+    APP_NAME is built-in and synced into nested identity fields by customize().
     Override any field to customise for this service.
     """
 

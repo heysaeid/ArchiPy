@@ -20,7 +20,7 @@ from archipy.configs.environment_type import EnvironmentType
 
 
 class AppConfig(BaseConfig):
-    # Application settings
+    # Built-in application identity (synced to OTEL / FastAPI / Auth / Temporal)
     APP_NAME: str = "MyService"
     DEBUG: bool = False
 
@@ -44,6 +44,10 @@ class AppConfig(BaseConfig):
     # Logging
     LOG_LEVEL: str = "INFO"
 ```
+
+> **Note:** `APP_NAME` is defined on `BaseConfig`. Setting it (or `APP_NAME` in the environment)
+> fills nested defaults: `OTEL.SERVICE_NAME`, `FASTAPI.PROJECT_NAME`, `AUTH.JWT_ISSUER`, and
+> `TEMPORAL.CLIENT_IDENTITY` when `BaseConfig.set_global()` runs `customize()`.
 
 ### Using the Configuration
 

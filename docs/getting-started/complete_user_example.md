@@ -64,13 +64,15 @@ class AppConfig(BaseConfig):
     """Application-specific configuration.
 
     All ArchiPy sections (REDIS, POSTGRES, FASTAPI, …) are inherited from BaseConfig.
-    Override `customize` to apply app-specific defaults after loading.
+    APP_NAME is synced into nested identity fields by BaseConfig.customize().
+    Override `customize` for other app-specific defaults after loading.
     """
+
+    APP_NAME: str = "my-service"
 
     def customize(self) -> None:
         """Apply app-specific configuration overrides."""
         super().customize()
-        self.FASTAPI.PROJECT_NAME = "my-service"
         self.FASTAPI.SERVE_HOST = "0.0.0.0"  # noqa: S104
         self.FASTAPI.SERVE_PORT = 8000
         self.FASTAPI.RELOAD = self.ENVIRONMENT == EnvironmentType.LOCAL

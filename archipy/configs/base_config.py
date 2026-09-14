@@ -75,6 +75,7 @@ class BaseConfig[R](BaseSettings):
     can be set once and accessed throughout the application.
 
     Attributes:
+        APP_NAME (str | None): Application identity; synced into nested configs in ``customize()``
         AUTH (AuthConfig): Authentication and security settings
         DATETIME (DatetimeConfig): Date/time handling configuration
         ELASTIC (ElasticsearchConfig): Elasticsearch configuration
@@ -105,7 +106,7 @@ class BaseConfig[R](BaseSettings):
         >>> from archipy.configs.base_config import BaseConfig
         >>>
         >>> class MyAppConfig(BaseConfig):
-        ...     # Override defaults
+        ...     # Override defaults (APP_NAME is a built-in field)
         ...     APP_NAME = "My Application"
         ...     DEBUG = True
         ...
@@ -191,6 +192,7 @@ class BaseConfig[R](BaseSettings):
         )
         return tuple(sources)
 
+    APP_NAME: str | None = None
     AUTH: AuthConfig = AuthConfig()
     DATETIME: DatetimeConfig = DatetimeConfig()
     ELASTIC: ElasticsearchConfig = ElasticsearchConfig()
@@ -224,6 +226,10 @@ class BaseConfig[R](BaseSettings):
         custom configuration modifications after loading settings.
         It is called automatically by `set_global()`.
 
+        When ``APP_NAME`` is set, unset or placeholder nested identity fields are
+        filled: ``OTEL.SERVICE_NAME``, ``FASTAPI.PROJECT_NAME``, ``AUTH.JWT_ISSUER``,
+        and ``TEMPORAL.CLIENT_IDENTITY``. Explicit nested values always win.
+
         Examples:
             >>> class MyAppConfig(BaseConfig):
             ...     def customize(self) -> None:
@@ -234,6 +240,16 @@ class BaseConfig[R](BaseSettings):
         """
         if self.OTEL.ENVIRONMENT is None:
             self.OTEL.ENVIRONMENT = self.ENVIRONMENT
+
+        if self.APP_NAME:
+            if self.OTEL.SERVICE_NAME is None:
+                self.OTEL.SERVICE_NAME = self.APP_NAME
+            if self.FASTAPI.PROJECT_NAME == "project_name":
+                self.FASTAPI.PROJECT_NAME = self.APP_NAME
+            if self.AUTH.JWT_ISSUER == "your-app-name":
+                self.AUTH.JWT_ISSUER = self.APP_NAME
+            if self.TEMPORAL.CLIENT_IDENTITY is None:
+                self.TEMPORAL.CLIENT_IDENTITY = self.APP_NAME
 
     @classmethod
     def global_config(cls) -> BaseConfig:

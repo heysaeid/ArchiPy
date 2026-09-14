@@ -44,7 +44,12 @@ from archipy.configs.base_config import BaseConfig
 
 
 class AppConfig(BaseConfig):
-    """Application-specific configuration."""
+    """Application-specific configuration.
+
+    APP_NAME is a built-in BaseConfig field. After set_global(), customize()
+    fills OTEL.SERVICE_NAME, FASTAPI.PROJECT_NAME, AUTH.JWT_ISSUER, and
+    TEMPORAL.CLIENT_IDENTITY when those nested fields are still defaults.
+    """
 
     APP_NAME: str = "my-service"
     DEBUG: bool = False
