@@ -100,9 +100,15 @@ logger.info("OTel enabled=%s endpoint=%s", config.OTEL.IS_ENABLED, config.OTEL.O
 | `PROTOCOL`                | `grpc`                      | `grpc` or `http/protobuf`                        |
 | `TRACES_SAMPLE_RATIO`     | `0.1`                       | Parent-based trace ID ratio sampler              |
 | `METRIC_EXPORT_INTERVAL_MS` | `60000`                   | Periodic OTLP metric export interval             |
-| `METRICS_EXPORTER`        | `otlp`                      | Unique exporter: `otlp` (push) or `pull` (scrape)|
+| `METRICS_EXPORTER`        | `otlp`                      | Unique exporter: `otlp`, `pull`, or `pushgateway`|
 | `METRICS_PULL_HOST`       | `0.0.0.0`                   | Pull scrape bind host (unauthenticated)          |
 | `METRICS_PULL_PORT`       | `8200`                      | Pull scrape bind port (`/metrics`)               |
+| `METRICS_PUSHGATEWAY_URL` | `None`                      | Pushgateway URL (required for `pushgateway`)     |
+| `METRICS_PUSHGATEWAY_JOB` | `None`                      | Pushgateway job (defaults to `SERVICE_NAME`)     |
+| `METRICS_PUSHGATEWAY_INTERVAL_SECONDS` | `60`           | Push interval when exporter is `pushgateway`     |
+| `METRICS_PUSHGATEWAY_TIMEOUT_SECONDS` | `10`            | HTTP timeout for push/delete                     |
+| `METRICS_PUSHGATEWAY_GROUPING_KEY` | `{}`               | Extra grouping labels (max 16 entries)           |
+| `METRICS_PUSHGATEWAY_DELETE_ON_SHUTDOWN` | `true`       | Delete grouping key on graceful shutdown         |
 | `SYSTEM_METRICS_ENABLED`  | `true`                      | Process/system metrics instrumentor              |
 | `LOGS_ENABLED`            | `true`                      | Enable log export when OTel is on                |
 | `LOGS_EXPORTER`           | `console`                   | Unique logs exporter: `console` or `otlp`        |
@@ -110,19 +116,24 @@ logger.info("OTel enabled=%s endpoint=%s", config.OTEL.IS_ENABLED, config.OTEL.O
 | `RESOURCE_ATTRIBUTES`     | `{}`                        | Extra OTel resource attributes                   |
 | `LOGS_LEVEL`              | `INFO`                      | Minimum level for the root-logger handler        |
 
-### Metrics push vs pull
+### Metrics exporters
 
 Exactly **one** metrics exporter when `METRICS_ENABLED` is true — set via
-`METRICS_EXPORTER` (`otlp` | `pull`):
+`METRICS_EXPORTER` (`otlp` | `pull` | `pushgateway`):
 
 | Mode | `METRICS_EXPORTER` | Behavior |
 |------|-------------------|----------|
-| OTLP push (default) | `otlp` | Periodic export to the OTLP collector |
+| OTLP (default) | `otlp` | Periodic export to the OTLP collector |
 | Pull scrape | `pull` | Dedicated HTTP server on `METRICS_PULL_HOST:METRICS_PULL_PORT/metrics` |
+| Pushgateway | `pushgateway` | Daemon thread pushes Prometheus text to Pushgateway (no local scrape) |
+
+`otlp` and `pushgateway` both *push* from the process, but to different wire
+targets: OTLP collector vs Prometheus Pushgateway.
 
 Pull scrape is a **standalone** process-wide HTTP server started from
 `OtelUtils.init_otel_if_needed` — not a FastAPI `/metrics` route. Works for
-FastAPI, gRPC, and workers.
+FastAPI, gRPC, and workers. If the scrape port cannot bind, ArchiPy logs a
+warning and keeps traces/logs/metrics providers running.
 
 ```bash
 # Pull-only (no collector)
@@ -132,6 +143,17 @@ OTEL__METRICS_PULL_HOST=0.0.0.0
 OTEL__METRICS_PULL_PORT=8200
 ```
 
+```bash
+# Prometheus Pushgateway (no local /metrics server)
+OTEL__METRICS_ENABLED=true
+OTEL__METRICS_EXPORTER=pushgateway
+OTEL__METRICS_PUSHGATEWAY_URL=http://pushgateway.monitoring:9091
+OTEL__METRICS_PUSHGATEWAY_JOB=my-service
+OTEL__METRICS_PUSHGATEWAY_INTERVAL_SECONDS=60
+```
+
+`OtelUtils.metrics_registry()` returns the Prometheus `CollectorRegistry` when
+exporter is `pull` or `pushgateway`.
 ### Logs exporters
 
 Exactly **one** logs exporter when `LOGS_ENABLED` is true — set via

@@ -146,6 +146,10 @@ class OtelUtils:
     _metrics_pull_httpd: Any | None = None
     _metrics_pull_thread: Any | None = None
     _owns_metrics_pull_scrape: bool = False
+    _metrics_pushgateway_stop: threading.Event | None = None
+    _metrics_pushgateway_thread: threading.Thread | None = None
+    _metrics_pushgateway_config: dict[str, Any] | None = None
+    _owns_metrics_pushgateway: bool = False
     _textmap_propagator_installed: bool = False
 
     @staticmethod
@@ -256,6 +260,16 @@ class OtelUtils:
         """Return the owned or adopted logger provider, if initialized."""
         return cls._logger_provider
 
+    @classmethod
+    def metrics_registry(cls) -> Any | None:
+        """Return the Prometheus ``CollectorRegistry`` for pull/pushgateway metrics.
+
+        Returns:
+            The registry when ``METRICS_EXPORTER`` is ``pull`` or ``pushgateway``
+            and providers were built, otherwise ``None``.
+        """
+        return cls._metrics_pull_registry
+
     @staticmethod
     def _truncate_status_description(exception: BaseException) -> str:
         """Return a bounded status description for span status."""
@@ -351,6 +365,7 @@ class OtelUtils:
                     _OTEL_INSTALL_HINT,
                 )
             except Exception:
+                cls._stop_metrics_pushgateway_unlocked()
                 cls._stop_metrics_pull_scrape_unlocked()
                 logger.exception("Failed to initialize OpenTelemetry")
 
@@ -387,6 +402,7 @@ class OtelUtils:
         with cls._lock:
             cls._force_flush_unlocked(_DEFAULT_FLUSH_TIMEOUT_MS)
             cls._detach_logging_handler_unlocked()
+            cls._stop_metrics_pushgateway_unlocked()
             cls._stop_metrics_pull_scrape_unlocked()
             cls._shutdown_owned_providers_unlocked()
             cls._tracer_provider = None
@@ -469,6 +485,7 @@ class OtelUtils:
         """
         with cls._lock:
             cls._detach_logging_handler_unlocked()
+            cls._stop_metrics_pushgateway_unlocked()
             cls._stop_metrics_pull_scrape_unlocked()
             cls._shutdown_owned_providers_unlocked()
             cls._tracer_provider = None
@@ -553,11 +570,15 @@ class OtelUtils:
         )
         cls._detach_logging_handler_unlocked()
         # Do not call shutdown() — exporter threads belong to the parent process.
-        # Drop scrape handles without stopping the parent's HTTP server.
+        # Drop scrape/push handles without stopping the parent's workers.
         cls._metrics_pull_httpd = None
         cls._metrics_pull_thread = None
         cls._metrics_pull_registry = None
         cls._owns_metrics_pull_scrape = False
+        cls._metrics_pushgateway_stop = None
+        cls._metrics_pushgateway_thread = None
+        cls._metrics_pushgateway_config = None
+        cls._owns_metrics_pushgateway = False
         cls._tracer_provider = None
         cls._meter_provider = None
         cls._logger_provider = None
@@ -804,10 +825,11 @@ class OtelUtils:
             otel,
             owns_meter=owns_meter,
             new_meter=new_meter,
-            new_tracer=new_tracer,
-            owns_tracer=owns_tracer,
-            new_logger=new_logger,
-            owns_logger=owns_logger,
+        )
+        cls._maybe_start_metrics_pushgateway_unlocked(
+            otel,
+            owns_meter=owns_meter,
+            new_meter=new_meter,
         )
 
         if otel.LOGS_ENABLED and new_logger is not None:
@@ -820,12 +842,8 @@ class OtelUtils:
         *,
         owns_meter: bool,
         new_meter: Any | None,
-        new_tracer: Any | None,
-        owns_tracer: bool,
-        new_logger: Any | None,
-        owns_logger: bool,
     ) -> None:
-        """Start pull scrape when owned; roll back providers on failure."""
+        """Start pull scrape when owned; leave providers intact on bind failure."""
         if not (otel.METRICS_ENABLED and otel.METRICS_EXPORTER == "pull"):
             return
         if not (owns_meter and new_meter is not None):
@@ -837,16 +855,43 @@ class OtelUtils:
         try:
             cls._start_metrics_pull_scrape_unlocked(otel)
         except Exception:
-            cls._stop_metrics_pull_scrape_unlocked()
-            cls._shutdown_partial(new_tracer, owns_tracer, new_meter, owns_meter, new_logger, owns_logger)
-            cls._tracer_provider = None
-            cls._meter_provider = None
-            cls._logger_provider = None
-            cls._owns_tracer = False
-            cls._owns_meter = False
-            cls._owns_logger = False
-            cls._globals_set = False
-            raise
+            logger.warning(
+                "Metrics pull scrape server failed to start on %s:%s; "
+                "continuing without scrape (traces/logs/metrics providers remain active)",
+                otel.METRICS_PULL_HOST,
+                otel.METRICS_PULL_PORT,
+                exc_info=True,
+            )
+            cls._metrics_pull_httpd = None
+            cls._metrics_pull_thread = None
+            cls._owns_metrics_pull_scrape = False
+
+    @classmethod
+    def _maybe_start_metrics_pushgateway_unlocked(
+        cls,
+        otel: Any,
+        *,
+        owns_meter: bool,
+        new_meter: Any | None,
+    ) -> None:
+        """Start Pushgateway push loop when owned; never raise into the app."""
+        if not (otel.METRICS_ENABLED and otel.METRICS_EXPORTER == "pushgateway"):
+            return
+        if not (owns_meter and new_meter is not None):
+            logger.warning(
+                "METRICS_EXPORTER=pushgateway but the MeterProvider was adopted; "
+                "ArchiPy Pushgateway push loop is not started for this process",
+            )
+            return
+        try:
+            cls._start_metrics_pushgateway_unlocked(otel)
+        except Exception:
+            logger.warning(
+                "Metrics Pushgateway push loop failed to start; "
+                "continuing without push (traces/logs/metrics providers remain active)",
+                exc_info=True,
+            )
+            cls._stop_metrics_pushgateway_unlocked(delete_group=False)
 
     @classmethod
     def _build_tracer_provider(cls, otel: Any, resource: Any) -> Any:
@@ -877,7 +922,7 @@ class OtelUtils:
                     export_interval_millis=otel.METRIC_EXPORT_INTERVAL_MS,
                 ),
             )
-        elif otel.METRICS_EXPORTER == OtelMetricsExporter.PULL:
+        elif otel.METRICS_EXPORTER in {OtelMetricsExporter.PULL, OtelMetricsExporter.PUSHGATEWAY}:
             from opentelemetry.exporter.prometheus import PrometheusMetricReader
             from prometheus_client import CollectorRegistry
 
@@ -919,7 +964,9 @@ class OtelUtils:
         if not cls._owns_metrics_pull_scrape:
             cls._metrics_pull_httpd = None
             cls._metrics_pull_thread = None
-            cls._metrics_pull_registry = None
+            # Keep registry when pushgateway (or another owner) still needs it.
+            if not cls._owns_metrics_pushgateway:
+                cls._metrics_pull_registry = None
             return
         httpd = cls._metrics_pull_httpd
         if httpd is not None:
@@ -933,8 +980,118 @@ class OtelUtils:
                 logger.debug("Error closing metrics pull scrape server socket", exc_info=True)
         cls._metrics_pull_httpd = None
         cls._metrics_pull_thread = None
-        cls._metrics_pull_registry = None
+        if not cls._owns_metrics_pushgateway:
+            cls._metrics_pull_registry = None
         cls._owns_metrics_pull_scrape = False
+
+    @classmethod
+    def _start_metrics_pushgateway_unlocked(cls, otel: Any) -> None:
+        """Start the daemon thread that pushes metrics to Prometheus Pushgateway."""
+        if cls._metrics_pushgateway_thread is not None and cls._metrics_pushgateway_thread.is_alive():
+            return
+        registry = cls._metrics_pull_registry
+        if registry is None:
+            msg = "Metrics registry missing before Pushgateway start"
+            raise RuntimeError(msg)
+
+        gateway_url = str(otel.METRICS_PUSHGATEWAY_URL or "").strip()
+        if not gateway_url:
+            msg = "METRICS_PUSHGATEWAY_URL is required when METRICS_EXPORTER=pushgateway"
+            raise RuntimeError(msg)
+
+        job = str(otel.METRICS_PUSHGATEWAY_JOB or otel.SERVICE_NAME or "archipy").strip() or "archipy"
+        grouping_key = dict(otel.METRICS_PUSHGATEWAY_GROUPING_KEY or {})
+        interval = int(otel.METRICS_PUSHGATEWAY_INTERVAL_SECONDS)
+        timeout = float(otel.METRICS_PUSHGATEWAY_TIMEOUT_SECONDS)
+        delete_on_shutdown = bool(otel.METRICS_PUSHGATEWAY_DELETE_ON_SHUTDOWN)
+
+        stop_event = threading.Event()
+        cls._metrics_pushgateway_stop = stop_event
+        cls._metrics_pushgateway_config = {
+            "gateway": gateway_url,
+            "job": job,
+            "grouping_key": grouping_key,
+            "timeout": timeout,
+            "delete_on_shutdown": delete_on_shutdown,
+        }
+
+        def _push_loop() -> None:
+            from prometheus_client import push_to_gateway
+
+            while True:
+                try:
+                    push_to_gateway(
+                        gateway=gateway_url,
+                        job=job,
+                        registry=registry,
+                        grouping_key=grouping_key or None,
+                        timeout=timeout,
+                    )
+                except Exception:
+                    logger.warning(
+                        "Failed to push metrics to Pushgateway %s (job=%s)",
+                        gateway_url,
+                        job,
+                        exc_info=True,
+                    )
+                if stop_event.wait(interval):
+                    break
+
+        thread = threading.Thread(
+            target=_push_loop,
+            name="archipy-metrics-pushgateway",
+            daemon=True,
+        )
+        thread.start()
+        cls._metrics_pushgateway_thread = thread
+        cls._owns_metrics_pushgateway = True
+        logger.info(
+            "Metrics Pushgateway push loop started (gateway=%s job=%s interval=%ss)",
+            gateway_url,
+            job,
+            interval,
+        )
+
+    @classmethod
+    def _stop_metrics_pushgateway_unlocked(cls, *, delete_group: bool = True) -> None:
+        """Stop the Pushgateway push loop and optionally delete the grouping key."""
+        stop_event = cls._metrics_pushgateway_stop
+        thread = cls._metrics_pushgateway_thread
+        config = cls._metrics_pushgateway_config
+        registry = cls._metrics_pull_registry
+        owned = cls._owns_metrics_pushgateway
+
+        if stop_event is not None:
+            stop_event.set()
+        if thread is not None and thread.is_alive() and thread is not threading.current_thread():
+            thread.join(timeout=2.0)
+
+        should_delete = (
+            delete_group
+            and owned
+            and config is not None
+            and bool(config.get("delete_on_shutdown"))
+            and registry is not None
+        )
+        if should_delete:
+            try:
+                from prometheus_client import delete_from_gateway
+
+                delete_from_gateway(
+                    gateway=str(config["gateway"]),
+                    job=str(config["job"]),
+                    grouping_key=config.get("grouping_key") or None,
+                    timeout=float(config.get("timeout") or 10.0),
+                )
+            except Exception:
+                logger.warning("Failed to delete Pushgateway metrics group on shutdown", exc_info=True)
+
+        cls._metrics_pushgateway_stop = None
+        cls._metrics_pushgateway_thread = None
+        cls._metrics_pushgateway_config = None
+        cls._owns_metrics_pushgateway = False
+        if owned and not cls._owns_metrics_pull_scrape:
+            cls._metrics_pull_registry = None
 
     @classmethod
     def _build_logger_provider(cls, otel: Any, resource: Any) -> Any:

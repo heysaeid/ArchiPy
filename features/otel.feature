@@ -194,6 +194,30 @@ Feature: OpenTelemetry decorators
     And I shut down OpenTelemetry providers
     Then the metrics pull scrape port should refuse connections
 
+  Scenario: metrics pull scrape bind failure keeps providers
+    Given OpenTelemetry is configured for pull metrics on a busy port with traces enabled
+    When I initialize OpenTelemetry providers from config
+    Then the OpenTelemetry meter provider should be available
+    And the OpenTelemetry tracer provider should be available
+    And the metrics registry should be available
+    And the metrics pull scrape port should refuse connections
+
+  Scenario: metrics pushgateway pushes and deletes on shutdown
+    Given OpenTelemetry is configured for pushgateway metrics with a stub gateway
+    When I initialize OpenTelemetry providers from config
+    And I wait for a Pushgateway push
+    Then the Pushgateway should have received a push for job "archipy-pushgateway-bdd"
+    And the metrics pull scrape port should refuse connections
+    When I shut down OpenTelemetry providers
+    Then the Pushgateway should have received a delete for job "archipy-pushgateway-bdd"
+
+  Scenario: metrics pushgateway push failure keeps providers
+    Given OpenTelemetry is configured for pushgateway metrics with a failing stub gateway
+    When I initialize OpenTelemetry providers from config
+    And I wait for a Pushgateway push attempt
+    Then the OpenTelemetry meter provider should be available
+    And the metrics registry should be available
+
   Scenario: Temporal connect attaches TracingInterceptor and resolved metrics endpoint
     When I connect a Temporal adapter with OTel enabled using a mocked Client
     Then the Temporal connect kwargs should include a TracingInterceptor

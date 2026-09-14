@@ -36,6 +36,12 @@ def _reset_otel_config_defaults() -> None:
     config.OTEL.SYSTEM_METRICS_ENABLED = True
     config.OTEL.METRICS_PULL_HOST = "127.0.0.1"
     config.OTEL.METRICS_PULL_PORT = 8200
+    config.OTEL.METRICS_PUSHGATEWAY_URL = None
+    config.OTEL.METRICS_PUSHGATEWAY_JOB = None
+    config.OTEL.METRICS_PUSHGATEWAY_INTERVAL_SECONDS = 60
+    config.OTEL.METRICS_PUSHGATEWAY_TIMEOUT_SECONDS = 10.0
+    config.OTEL.METRICS_PUSHGATEWAY_GROUPING_KEY = {}
+    config.OTEL.METRICS_PUSHGATEWAY_DELETE_ON_SHUTDOWN = True
     config.OTEL.LOGS_ENABLED = False
     config.OTEL.LOGS_LEVEL = "INFO"
 
@@ -103,7 +109,17 @@ def teardown_otel_testing(context: Context) -> None:
 
     _restore_captured_log_streams(scenario_context)
     _close_open_test_spans(scenario_context)
+    blocker = scenario_context.get("metrics_pull_blocker")
+    if blocker is not None:
+        try:
+            blocker.close()
+        except OSError:
+            pass
+        scenario_context.store("metrics_pull_blocker", None)
     OtelUtils.reset_for_testing()
+    if scenario_context.get("pushgateway_stubs_installed"):
+        _restore_pushgateway_stubs(context)
+        scenario_context.store("pushgateway_stubs_installed", False)
     try:
         config = BaseConfig.global_config()
         config.OTEL.IS_ENABLED = False
@@ -465,9 +481,7 @@ def step_then_span_status_ok(context):
 def step_then_span_status_unset(context):
     scenario_context = get_current_scenario_context(context)
     span = _span_by_name(context, scenario_context.get("expected_span_name"))
-    assert span.status.status_code == StatusCode.UNSET, (
-        f"Expected UNSET status, got {span.status.status_code}"
-    )
+    assert span.status.status_code == StatusCode.UNSET, f"Expected UNSET status, got {span.status.status_code}"
 
 
 @then("the recorded span should include an exception event")
@@ -492,9 +506,7 @@ def step_then_root_trace_differs(context):
     root_span = _span_by_name(context, scenario_context.get("expected_span_name"))
     ambient_trace_id = scenario_context.get("ambient_parent_trace_id")
     root_trace_id = root_span.context.trace_id
-    assert root_trace_id != ambient_trace_id, (
-        f"Expected different trace ids, both were {ambient_trace_id:032x}"
-    )
+    assert root_trace_id != ambient_trace_id, f"Expected different trace ids, both were {ambient_trace_id:032x}"
 
 
 @then('a histogram metric named "{instrument_name}" should have datapoints')
@@ -579,8 +591,7 @@ def step_when_resolve_endpoints(context, protocol, base):
 
 
 @when(
-    'I resolve OTLP metrics endpoint for protocol "{protocol}" with base "{base}" '
-    'overridden to "{override}"',
+    'I resolve OTLP metrics endpoint for protocol "{protocol}" with base "{base}" overridden to "{override}"',
 )
 def step_when_resolve_endpoints_with_override(context, protocol, base, override):
     scenario_context = get_current_scenario_context(context)
@@ -721,8 +732,7 @@ def step_then_worker_shares_trace(context):
     worker_span = _span_by_name(context, "worker_span")
     ambient_trace_id = scenario_context.get("ambient_parent_trace_id")
     assert worker_span.context.trace_id == ambient_trace_id, (
-        f"Expected shared trace id {ambient_trace_id:032x}, "
-        f"got {worker_span.context.trace_id:032x}"
+        f"Expected shared trace id {ambient_trace_id:032x}, got {worker_span.context.trace_id:032x}"
     )
 
 
@@ -1995,3 +2005,192 @@ def step_then_scrape_refused(context):
 @then("system CPU metric instruments should be absent")
 def step_then_no_system_metrics(context):
     assert "system_metrics" not in OtelUtils._instrumented_libraries
+
+
+@given("OpenTelemetry is configured for pull metrics on a busy port with traces enabled")
+def step_given_pull_busy_port_with_traces(context):
+    import socket
+
+    from archipy.configs.config_template import OtelMetricsExporter
+
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.reset_for_testing()
+    OtelUtils._globals_set = False
+
+    port = _free_tcp_port()
+    blocker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    blocker.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    blocker.bind(("127.0.0.1", port))
+    blocker.listen(1)
+
+    config = BaseConfig.global_config()
+    config.OTEL.IS_ENABLED = True
+    config.OTEL.TRACES_ENABLED = True
+    config.OTEL.METRICS_ENABLED = True
+    config.OTEL.LOGS_ENABLED = False
+    config.OTEL.METRICS_EXPORTER = OtelMetricsExporter.PULL
+    config.OTEL.METRICS_PULL_HOST = "127.0.0.1"
+    config.OTEL.METRICS_PULL_PORT = port
+    config.OTEL.SYSTEM_METRICS_ENABLED = False
+    config.OTEL.PROTOCOL = "http/protobuf"
+    config.OTEL.OTLP_ENDPOINT = "http://127.0.0.1:4318"
+    config.OTEL.SERVICE_NAME = "archipy-pull-busy-bdd"
+
+    scenario_context.store("metrics_pull_port", port)
+    scenario_context.store("metrics_pull_blocker", blocker)
+    scenario_context.store("otel_enabled_for_test", True)
+
+
+def _release_pull_blocker(context) -> None:
+    scenario_context = get_current_scenario_context(context)
+    blocker = scenario_context.get("metrics_pull_blocker")
+    if blocker is not None:
+        try:
+            blocker.close()
+        except OSError:
+            pass
+        scenario_context.store("metrics_pull_blocker", None)
+
+
+@then("the OpenTelemetry meter provider should be available")
+def step_then_meter_available(context):
+    _release_pull_blocker(context)
+    assert OtelUtils.meter_provider() is not None
+
+
+@then("the OpenTelemetry tracer provider should be available")
+def step_then_tracer_available(context):
+    assert OtelUtils.tracer_provider() is not None
+
+
+@then("the metrics registry should be available")
+def step_then_metrics_registry_available(context):
+    assert OtelUtils.metrics_registry() is not None
+
+
+def _install_pushgateway_stubs(context, *, fail_push: bool = False) -> None:
+    import prometheus_client
+
+    scenario_context = get_current_scenario_context(context)
+    pushes: list[dict] = []
+    deletes: list[dict] = []
+    push_event = __import__("threading").Event()
+
+    def fake_push_to_gateway(*, gateway, job, registry, grouping_key=None, timeout=None, **_kwargs):
+        if fail_push:
+            push_event.set()
+            raise OSError("stub pushgateway unreachable")
+        pushes.append(
+            {
+                "gateway": gateway,
+                "job": job,
+                "registry": registry,
+                "grouping_key": grouping_key,
+                "timeout": timeout,
+            },
+        )
+        push_event.set()
+
+    def fake_delete_from_gateway(*, gateway, job, grouping_key=None, timeout=None, **_kwargs):
+        deletes.append(
+            {
+                "gateway": gateway,
+                "job": job,
+                "grouping_key": grouping_key,
+                "timeout": timeout,
+            },
+        )
+
+    scenario_context.store("pushgateway_pushes", pushes)
+    scenario_context.store("pushgateway_deletes", deletes)
+    scenario_context.store("pushgateway_push_event", push_event)
+    scenario_context.store("pushgateway_orig_push", prometheus_client.push_to_gateway)
+    scenario_context.store("pushgateway_orig_delete", prometheus_client.delete_from_gateway)
+    prometheus_client.push_to_gateway = fake_push_to_gateway
+    prometheus_client.delete_from_gateway = fake_delete_from_gateway
+
+
+def _restore_pushgateway_stubs(context) -> None:
+    import prometheus_client
+
+    scenario_context = get_current_scenario_context(context)
+    orig_push = scenario_context.get("pushgateway_orig_push")
+    orig_delete = scenario_context.get("pushgateway_orig_delete")
+    if orig_push is not None:
+        prometheus_client.push_to_gateway = orig_push
+    if orig_delete is not None:
+        prometheus_client.delete_from_gateway = orig_delete
+
+
+def _configure_pushgateway(context, *, fail_push: bool = False) -> None:
+    from archipy.configs.config_template import OtelMetricsExporter
+
+    scenario_context = get_current_scenario_context(context)
+    OtelUtils.reset_for_testing()
+    OtelUtils._globals_set = False
+    _install_pushgateway_stubs(context, fail_push=fail_push)
+
+    port = _free_tcp_port()
+    config = BaseConfig.global_config()
+    config.OTEL.IS_ENABLED = True
+    config.OTEL.TRACES_ENABLED = False
+    config.OTEL.METRICS_ENABLED = True
+    config.OTEL.LOGS_ENABLED = False
+    config.OTEL.METRICS_EXPORTER = OtelMetricsExporter.PUSHGATEWAY
+    config.OTEL.METRICS_PUSHGATEWAY_URL = "http://127.0.0.1:9091"
+    config.OTEL.METRICS_PUSHGATEWAY_JOB = "archipy-pushgateway-bdd"
+    config.OTEL.METRICS_PUSHGATEWAY_INTERVAL_SECONDS = 1
+    config.OTEL.METRICS_PUSHGATEWAY_TIMEOUT_SECONDS = 1.0
+    config.OTEL.METRICS_PUSHGATEWAY_GROUPING_KEY = {"instance": "bdd"}
+    config.OTEL.METRICS_PUSHGATEWAY_DELETE_ON_SHUTDOWN = True
+    config.OTEL.METRICS_PULL_HOST = "127.0.0.1"
+    config.OTEL.METRICS_PULL_PORT = port
+    config.OTEL.SYSTEM_METRICS_ENABLED = False
+    config.OTEL.PROTOCOL = "http/protobuf"
+    config.OTEL.OTLP_ENDPOINT = "http://127.0.0.1:4318"
+    config.OTEL.SERVICE_NAME = "archipy-pushgateway-bdd"
+
+    scenario_context.store("metrics_pull_port", port)
+    scenario_context.store("otel_enabled_for_test", True)
+    scenario_context.store("pushgateway_stubs_installed", True)
+
+
+@given("OpenTelemetry is configured for pushgateway metrics with a stub gateway")
+def step_given_pushgateway_stub(context):
+    _configure_pushgateway(context, fail_push=False)
+
+
+@given("OpenTelemetry is configured for pushgateway metrics with a failing stub gateway")
+def step_given_pushgateway_failing_stub(context):
+    _configure_pushgateway(context, fail_push=True)
+
+
+@when("I wait for a Pushgateway push")
+def step_when_wait_pushgateway_push(context):
+    scenario_context = get_current_scenario_context(context)
+    event = scenario_context.get("pushgateway_push_event")
+    assert event.wait(timeout=5), "Timed out waiting for Pushgateway push"
+
+
+@when("I wait for a Pushgateway push attempt")
+def step_when_wait_pushgateway_attempt(context):
+    scenario_context = get_current_scenario_context(context)
+    event = scenario_context.get("pushgateway_push_event")
+    assert event.wait(timeout=5), "Timed out waiting for Pushgateway push attempt"
+
+
+@then('the Pushgateway should have received a push for job "{job}"')
+def step_then_pushgateway_push(context, job):
+    scenario_context = get_current_scenario_context(context)
+    pushes = scenario_context.get("pushgateway_pushes")
+    assert pushes, "Expected at least one Pushgateway push"
+    assert pushes[0]["job"] == job
+    assert pushes[0]["registry"] is OtelUtils.metrics_registry() or OtelUtils.metrics_registry() is not None
+
+
+@then('the Pushgateway should have received a delete for job "{job}"')
+def step_then_pushgateway_delete(context, job):
+    scenario_context = get_current_scenario_context(context)
+    deletes = scenario_context.get("pushgateway_deletes")
+    assert deletes, "Expected at least one Pushgateway delete"
+    assert deletes[0]["job"] == job

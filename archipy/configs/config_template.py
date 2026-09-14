@@ -37,6 +37,7 @@ class OtelMetricsExporter(StrEnum):
 
     OTLP = "otlp"
     PULL = "pull"
+    PUSHGATEWAY = "pushgateway"
 
 
 class OtelLogsExporter(StrEnum):
@@ -947,7 +948,7 @@ class OpentelemetryConfig(BaseModel):
     )
     METRICS_EXPORTER: OtelMetricsExporter = Field(
         default=OtelMetricsExporter.OTLP,
-        description="Unique metrics exporter when METRICS_ENABLED is true (otlp or pull)",
+        description="Unique metrics exporter when METRICS_ENABLED is true (otlp, pull, or pushgateway)",
     )
     METRICS_PULL_HOST: str = Field(
         default="0.0.0.0",  # noqa: S104 — intentional scrape bind-all default; override via env
@@ -958,6 +959,33 @@ class OpentelemetryConfig(BaseModel):
         ge=1,
         le=65535,
         description="Bind port for the metrics pull scrape server (/metrics)",
+    )
+    METRICS_PUSHGATEWAY_URL: str | None = Field(
+        default=None,
+        description="Prometheus Pushgateway base URL when METRICS_EXPORTER=pushgateway (e.g. http://host:9091)",
+    )
+    METRICS_PUSHGATEWAY_JOB: str | None = Field(
+        default=None,
+        description="Pushgateway job label (defaults to SERVICE_NAME when unset)",
+    )
+    METRICS_PUSHGATEWAY_INTERVAL_SECONDS: int = Field(
+        default=60,
+        ge=1,
+        description="Interval between Pushgateway pushes when METRICS_EXPORTER=pushgateway",
+    )
+    METRICS_PUSHGATEWAY_TIMEOUT_SECONDS: float = Field(
+        default=10.0,
+        gt=0,
+        description="HTTP timeout in seconds for Pushgateway push/delete calls",
+    )
+    METRICS_PUSHGATEWAY_GROUPING_KEY: dict[str, str] = Field(
+        default_factory=dict,
+        max_length=16,
+        description="Extra Pushgateway grouping labels (instance, component, ...)",
+    )
+    METRICS_PUSHGATEWAY_DELETE_ON_SHUTDOWN: bool = Field(
+        default=True,
+        description="Delete the Pushgateway grouping key on graceful OTel shutdown",
     )
     SYSTEM_METRICS_ENABLED: bool = Field(
         default=True,
@@ -989,6 +1017,19 @@ class OpentelemetryConfig(BaseModel):
                 reason="no_signals_enabled",
                 additional_data={
                     "hint": "Enable at least one of TRACES_ENABLED, METRICS_ENABLED, or LOGS_ENABLED",
+                },
+            )
+
+        if (
+            self.METRICS_ENABLED
+            and self.METRICS_EXPORTER == OtelMetricsExporter.PUSHGATEWAY
+            and not (self.METRICS_PUSHGATEWAY_URL and self.METRICS_PUSHGATEWAY_URL.strip())
+        ):
+            raise ConfigurationError(
+                operation="otel",
+                reason="pushgateway_url_required",
+                additional_data={
+                    "hint": "Set METRICS_PUSHGATEWAY_URL when METRICS_EXPORTER=pushgateway",
                 },
             )
 
