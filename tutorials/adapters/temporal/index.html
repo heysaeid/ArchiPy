@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://syntaxarc.github.io/ArchiPy/tutorials/adapters/temporal/">
       
       
-        <link rel="prev" href="../elasticsearch/">
+        <link rel="prev" href="../elasticsearch_patterns/">
       
       
         <link rel="next" href="../vault/">
@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../../assets/logo.jpg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -33,10 +33,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -183,6 +183,8 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -617,6 +619,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -687,6 +697,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -921,6 +935,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sqlalchemy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SQLAlchemy Search Totals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../kafka/" class="md-nav__link">
         
   
@@ -1041,6 +1083,34 @@
     
   
     Elasticsearch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../elasticsearch_patterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Elasticsearch Patterns
   
 
     
@@ -1212,6 +1282,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Using Atomic Activities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#activity-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Activity Names
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1275,6 +1362,17 @@
     <span class="md-ellipsis">
       
         What gets wired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exporter-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exporter modes
       
     </span>
   </a>
@@ -1355,6 +1453,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporal-sdk-behaviour-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal SDK Behaviour Notes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1827,6 +1936,118 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../scheduler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scheduler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../health_checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Health Checks and Shutdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../pydantic_ai/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pydantic AI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -1850,10 +2071,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_9" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_13" >
         
           
-          <label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2_13" id="__nav_2_13_label" tabindex="">
             
   
   
@@ -1871,8 +2092,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2_9">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_13">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2578,6 +2799,8 @@
       
         
       
+        
+      
     
     
     
@@ -2649,6 +2872,34 @@
     
   
     Decorators
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/helpers/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
   
 
     
@@ -2979,6 +3230,8 @@
       
         
       
+        
+      
     
     
     
@@ -3117,6 +3370,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../community/deprecations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deprecations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../community/security/" class="md-nav__link">
         
   
@@ -3178,7 +3459,7 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_5" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_6" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3200,14 +3481,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_5" id="__nav_4_5_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3548,6 +3829,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Using Atomic Activities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#activity-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Activity Names
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3611,6 +3909,17 @@
     <span class="md-ellipsis">
       
         What gets wired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exporter-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exporter modes
       
     </span>
   </a>
@@ -3691,6 +4000,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#temporal-sdk-behaviour-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Temporal SDK Behaviour Notes
+      
+    </span>
+  </a>
   
 </li>
       
@@ -3778,9 +4098,24 @@ error handling and Python 3.14 type hints.</p>
 </span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="nv">TEMPORAL__RETRY_MAXIMUM_INTERVAL</span><span class="o">=</span><span class="m">60</span>
 </span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="nv">TEMPORAL__RETRY_INITIAL_INTERVAL</span><span class="o">=</span><span class="m">1</span>
 </span></code></pre></div>
-<blockquote>
-<p><strong>Note:</strong> <code>TEMPORAL__API_KEY</code> is for Temporal Cloud authentication. Local dev servers ignore it.</p>
-</blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>TEMPORAL__API_KEY</code> is for Temporal Cloud authentication. Local dev servers ignore it.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Set <code>TLS_CLIENT_CERT</code> and <code>TLS_CLIENT_KEY</code> together for mutual TLS; one without the other is rejected with an
+<code>InvalidArgumentError</code>. <code>TLS_CA_CERT</code> alone gives server-only TLS, and <code>TLS_SERVER_NAME</code> overrides the name the
+certificate is checked against. TLS turns on by itself with <code>API_KEY</code>; <code>TLS_ENABLED</code> forces it on or off. Keep
+<code>TEMPORAL__API_KEY</code> and the key file out of source control.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The config validates the timeouts. When both are set, <code>WORKFLOW_RUN_TIMEOUT</code> must not exceed
+<code>WORKFLOW_EXECUTION_TIMEOUT</code>, and <code>KEEP_ALIVE_TIMEOUT_MS</code> must be lower than <code>KEEP_ALIVE_INTERVAL_MS</code>. Both workflow
+timeouts default to unbounded; set them only for workflows that must give up.
+Otherwise creating the config raises an <code>InvalidArgumentError</code>.</p>
+</div>
 <h3 id="configuration-reference">Configuration Reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3962,6 +4297,11 @@ error handling and Python 3.14 type hints.</p>
 </span><span id="__span-3-87"><a id="__codelineno-3-87" name="__codelineno-3-87" href="#__codelineno-3-87"></a><span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </span></code></pre></div>
 <h2 id="advanced-configuration-overrides">Advanced Configuration Overrides<a class="headerlink" href="#advanced-configuration-overrides" title="Permanent link">&para;</a></h2>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Activities and workflows take their defaults from <code>TemporalConfig</code>: 30 seconds start-to-close, a 10 second heartbeat
+timeout and 3 retry attempts for activities. Pass explicit values only where one call needs something different.</p>
+</div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
@@ -4067,12 +4407,17 @@ error handling and Python 3.14 type hints.</p>
 </span><span id="__span-4-103"><a id="__codelineno-4-103" name="__codelineno-4-103" href="#__codelineno-4-103"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">"Child workflow processed: </span><span class="si">{</span><span class="n">workflow_input</span><span class="p">[</span><span class="s1">'parent_data'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
 </span></code></pre></div>
 <h2 id="using-atomic-activities">Using Atomic Activities<a class="headerlink" href="#using-atomic-activities" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Activities are retried according to the retry policy (<code>RETRY_MAXIMUM_ATTEMPTS</code>, default <code>3</code>). Write them so that
+running more than once is safe, for example by checking for an existing record before creating one.</p>
+</div>
 <p>Activities can use atomic transactions for database operations:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
 </span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">archipy.adapters.temporal</span><span class="w"> </span><span class="kn">import</span> <span class="n">AtomicActivity</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">archipy.helpers.decorators.sqlalchemy_atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">postgres_sqlalchemy_atomic_decorator</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">archipy.adapters.base.sqlalchemy.atomic</span><span class="w"> </span><span class="kn">import</span> <span class="n">postgres_sqlalchemy_atomic</span>
 </span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">archipy.models.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatabaseConnectionError</span><span class="p">,</span> <span class="n">DatabaseQueryError</span>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1"># Configure logging</span>
@@ -4182,7 +4527,17 @@ error handling and Python 3.14 type hints.</p>
 </span><span id="__span-5-112"><a id="__codelineno-5-112" name="__codelineno-5-112" href="#__codelineno-5-112"></a>            <span class="s2">"email_sent"</span><span class="p">:</span> <span class="n">email_result</span>
 </span><span id="__span-5-113"><a id="__codelineno-5-113" name="__codelineno-5-113" href="#__codelineno-5-113"></a>        <span class="p">}</span>
 </span></code></pre></div>
+<h3 id="activity-names">Activity Names<a class="headerlink" href="#activity-names" title="Permanent link">&para;</a></h3>
+<p>Every <code>BaseActivity</code> subclass inherits the same <code>execute</code> method, but Temporal needs one unique name per activity.
+The first subclass keeps the bare name (<code>execute</code>, or <code>execute_atomic</code> for <code>AtomicActivity</code>) for backward
+compatibility; every later subclass is registered as <code>&lt;ClassName&gt;.execute</code> (or <code>&lt;ClassName&gt;.execute_atomic</code>).
+Register an instance with <code>activities=[MyActivity().as_activity()]</code> and call it from a workflow with the same bound
+callable, or by its class-qualified name.</p>
 <h2 id="async-operations-with-workers">Async Operations with Workers<a class="headerlink" href="#async-operations-with-workers" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On shutdown the worker waits up to <code>WORKER_GRACEFUL_SHUTDOWN_SECONDS</code> (default <code>30</code>) for running tasks to finish.</p>
+</div>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 </span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
@@ -4202,7 +4557,7 @@ error handling and Python 3.14 type hints.</p>
 </span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="n">worker_handle</span> <span class="o">=</span> <span class="k">await</span> <span class="n">worker_manager</span><span class="o">.</span><span class="n">start_worker</span><span class="p">(</span>
 </span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>            <span class="n">task_queue</span><span class="o">=</span><span class="s2">"my-task-queue"</span><span class="p">,</span>
 </span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>            <span class="n">workflows</span><span class="o">=</span><span class="p">[</span><span class="n">MyWorkflow</span><span class="p">,</span> <span class="n">UserOnboardingWorkflow</span><span class="p">],</span>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>            <span class="n">activities</span><span class="o">=</span><span class="p">[</span><span class="n">UserCreationActivity</span><span class="p">,</span> <span class="n">process_data_activity</span><span class="p">,</span> <span class="n">send_welcome_email_activity</span><span class="p">],</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>            <span class="n">activities</span><span class="o">=</span><span class="p">[</span><span class="n">UserCreationActivity</span><span class="p">()</span><span class="o">.</span><span class="n">as_activity</span><span class="p">(),</span> <span class="n">process_data_activity</span><span class="p">,</span> <span class="n">send_welcome_email_activity</span><span class="p">],</span>
 </span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>            <span class="n">max_concurrent_workflow_tasks</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
 </span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>            <span class="n">max_concurrent_activities</span><span class="o">=</span><span class="mi">20</span>
 </span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        <span class="p">)</span>
@@ -4215,8 +4570,8 @@ error handling and Python 3.14 type hints.</p>
 </span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>        <span class="k">try</span><span class="p">:</span>
 </span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>            <span class="c1"># Keep worker running</span>
 </span><span id="__span-6-32"><a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>            <span class="k">await</span> <span class="n">worker_handle</span><span class="o">.</span><span class="n">wait_until_stopped</span><span class="p">()</span>
-</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>        <span class="k">except</span> <span class="n">WorkerShutdownError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Worker shutdown error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># wait_until_stopped re-raises the error that ended the worker's run loop</span>
+</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Worker stopped with an error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>            <span class="k">raise</span>
 </span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>        <span class="k">finally</span><span class="p">:</span>
 </span><span id="__span-6-37"><a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>            <span class="c1"># Graceful shutdown</span>
@@ -4239,6 +4594,23 @@ error handling and Python 3.14 type hints.</p>
 </span><span id="__span-6-54"><a id="__codelineno-6-54" name="__codelineno-6-54" href="#__codelineno-6-54"></a>    <span class="k">return</span> <span class="kc">True</span>
 </span></code></pre></div>
 <h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
+<p><code>BaseActivity</code> fails an activity at once (non-retryable) when it raises an ArchiPy error with a 4xx HTTP status,
+because retrying the same input cannot succeed. Transient errors are exempt and follow the retry policy: HTTP 408,
+425 and 429, plus <code>DatabaseDeadlockError</code>, <code>DatabaseSerializationError</code>, <code>DatabaseTimeoutError</code>,
+<code>ConnectionTimeoutError</code>, <code>DeadlineExceededError</code>, <code>RateLimitExceededError</code> and <code>ResourceExhaustedError</code>. Override
+<code>_is_non_retryable(error)</code> in your activity to change the rule.</p>
+<p>A non-retryable failure carries only the error type: the original error, with its message and <code>additional_data</code>, is
+not attached as the cause and so is not sent to the Temporal server. A retryable error is re-raised as is, so its
+message is part of the activity failure. Set <code>REDACT_RETRYABLE_ERRORS = True</code> on your activity class to send only
+the error type for those too.</p>
+<p><code>TemporalAdapter</code> maps Temporal client errors to ArchiPy errors without exposing the server message:
+<code>NotFoundError</code> (missing workflow or schedule), <code>AlreadyExistsError</code> (duplicate workflow or schedule ID; for a
+workflow its <code>additional_data</code> holds <code>run_id</code> and <code>first_run_id</code>), <code>UnavailableError</code>, <code>DeadlineExceededError</code>, and
+<code>TemporalError</code> for any other RPC error. <code>wait_until_stopped()</code> raises the error that ended the worker's run loop;
+<code>stop()</code> and <code>shutdown_all_workers()</code> raise <code>WorkerShutdownError</code>.</p>
+<p>The Temporal <code>Runtime</code> is a process-wide singleton: once created, later requests with different metrics, Prometheus or
+tag settings are ignored and logged as a warning. A worker's <code>stop(grace_period)</code> only changes how long the call
+waits; the SDK's grace period for running activities is fixed when the worker starts.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
@@ -4420,28 +4792,61 @@ error handling and Python 3.14 type hints.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="exporter-modes">Exporter modes<a class="headerlink" href="#exporter-modes" title="Permanent link">&para;</a></h3>
+<p>The Temporal SDK core can only export over OTLP or serve its own Prometheus scrape endpoint, so it follows <code>OTEL.METRICS_EXPORTER</code> like this:</p>
+<table>
+<thead>
+<tr>
+<th><code>OTEL.METRICS_EXPORTER</code></th>
+<th>Temporal SDK metrics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>otlp</code></td>
+<td>Exported over OTLP to <code>OTEL.OTLP_ENDPOINT</code></td>
+</tr>
+<tr>
+<td><code>pull</code></td>
+<td>Served on their own <code>/metrics</code> endpoint at <code>OTEL.METRICS_PULL_HOST:TEMPORAL.METRICS_PULL_PORT</code> (default 8201)</td>
+</tr>
+<tr>
+<td><code>pushgateway</code></td>
+<td>Cannot be pushed. They still go over OTLP to <code>OTEL.OTLP_ENDPOINT</code>, and a warning is logged</td>
+</tr>
+</tbody>
+</table>
+<p><code>TEMPORAL.METRICS_PULL_PORT</code> must differ from <code>OTEL.METRICS_PULL_PORT</code>, because the app's own scrape server uses that one.
+To get Temporal and app metrics into one Pushgateway, send Temporal's OTLP to an OpenTelemetry Collector that forwards to it.
+The <code>Runtime</code> is created once per process, so the exporter mode and endpoint cannot change after the first connection.</p>
 <h3 id="available-metrics">Available Metrics<a class="headerlink" href="#available-metrics" title="Permanent link">&para;</a></h3>
 <p>When metrics are enabled, the Temporal SDK emits client and worker metrics to your OTLP
-collector (same endpoint as the rest of the app). Typical series include:</p>
+collector (same endpoint as the rest of the app). They come from the SDK core, so they carry the
+resource <code>service.name=temporal-core-sdk</code> instead of your app's service name, and are exported about
+every second. The series below are verified against a real Temporal server by the BDD suite:</p>
 <h4 id="client-side-metrics">Client-Side Metrics<a class="headerlink" href="#client-side-metrics" title="Permanent link">&para;</a></h4>
 <ul>
-<li><code>temporal_request_*</code> — client request counts and latency</li>
-<li><code>temporal_long_request_*</code> — long-polling request metrics</li>
-<li><code>temporal_workflow_*</code> — workflow operation metrics (start, execute, cancel, terminate)</li>
-<li><code>temporal_sticky_cache_*</code> — sticky workflow cache statistics</li>
+<li><code>temporal_request</code> / <code>temporal_request_latency</code> — client request counts and latency (label <code>operation</code>)</li>
+<li><code>temporal_long_request</code> — long-polling request counts (label <code>operation</code>)</li>
 </ul>
 <h4 id="worker-side-metrics">Worker-Side Metrics<a class="headerlink" href="#worker-side-metrics" title="Permanent link">&para;</a></h4>
 <ul>
-<li><code>temporal_worker_task_slots_available</code> / <code>_used</code> — task slot gauges</li>
-<li><code>temporal_worker_task_queue_poll_*</code> — task queue polling metrics</li>
-<li><code>temporal_workflow_task_execution_*</code> / <code>temporal_activity_task_execution_*</code> — task execution</li>
-<li><code>temporal_workflow_task_replay_latency</code> — workflow replay latency</li>
-<li><code>temporal_activity_execution_*</code> — activity execution counts and latency</li>
+<li><code>temporal_worker_start</code> — workers started</li>
+<li><code>temporal_worker_task_slots_available</code> / <code>temporal_worker_task_slots_used</code> — task slot gauges (label <code>worker_type</code>)</li>
+<li><code>temporal_num_pollers</code> — active pollers (label <code>poller_type</code>)</li>
+<li><code>temporal_sticky_cache_size</code> — sticky workflow cache size</li>
+<li><code>temporal_workflow_completed</code> — completed workflows (labels <code>task_queue</code>, <code>workflow_type</code>)</li>
+<li><code>temporal_workflow_task_execution_latency</code>, <code>temporal_workflow_endtoend_latency</code>,
+  <code>temporal_workflow_task_schedule_to_start_latency</code> — workflow latency histograms</li>
+<li><code>temporal_activity_task_received</code> — activity tasks received (label <code>activity_type</code>)</li>
+<li><code>temporal_activity_execution_latency</code>, <code>temporal_activity_succeed_endtoend_latency</code> — activity latency histograms</li>
+<li><code>temporal_activity_execution_failed</code> — failed activity executions (label <code>failure_reason</code>)</li>
 </ul>
-<blockquote>
-<p><strong>Tip:</strong> Query these series in your OTLP backend / Grafana after the collector scrapes or
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Query these series in your OTLP backend / Grafana after the collector scrapes or
 receives OTLP — panel setup is backend-specific and isn't covered here.</p>
-</blockquote>
+</div>
 <h3 id="complete-example-with-metrics">Complete Example with Metrics<a class="headerlink" href="#complete-example-with-metrics" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
@@ -4551,6 +4956,18 @@ receives OTLP — panel setup is backend-specific and isn't covered here.</p>
 <p>The Temporal Runtime with OTLP is created lazily on first client connection using
 <code>TemporalRuntimeManager</code> (singleton). Once created with metrics enabled, the Runtime cannot be
 reconfigured in-process (Temporal SDK limitation).</p>
+<h2 id="temporal-sdk-behaviour-notes">Temporal SDK Behaviour Notes<a class="headerlink" href="#temporal-sdk-behaviour-notes" title="Permanent link">&para;</a></h2>
+<p>Recent <code>temporalio</code> releases (1.32 to 1.35) changed behaviour that shows up through the adapter:</p>
+<ul>
+<li><strong>UUIDs in workflows</strong>: the workflow sandbox blocks the standard library <code>uuid.uuid7()</code>, which is not
+  deterministic. Inside workflow code, call <code>workflow.uuid7()</code> from <code>temporalio</code>, which is replay-safe. The adapter
+  still uses <code>uuid.uuid7()</code> outside workflows to generate a missing <code>workflow_id</code> in <code>start_workflow</code>.</li>
+<li><strong>Datetime search attributes</strong>: datetime values passed as <code>search_attributes</code> must be timezone-aware, e.g.
+  <code>datetime.now(UTC)</code>. Since <code>temporalio</code> 1.35 a naive datetime raises an error instead of being sent as is.</li>
+<li><strong>Schedule catchup window</strong>: <code>SchedulePolicy.catchup_window</code> now defaults to the server value instead of one year.
+  Pass <code>SchedulePolicy(catchup_window=timedelta(...))</code> to <code>create_schedule</code> when missed runs must be caught up over
+  a set window.</li>
+</ul>
 <h2 id="best-practices">Best Practices<a class="headerlink" href="#best-practices" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>Workflow Design</strong>: Keep workflows as coordinators - let activities handle business logic</li>
@@ -4570,6 +4987,7 @@ reconfigured in-process (Temporal SDK limitation).</p>
 <li><a href="../../observability/">Observability</a> — OpenTelemetry OTLP traces and metrics</li>
 <li><a href="../../testing_strategy/">BDD Testing</a> — Testing workflow operations</li>
 <li><a href="../../helpers/decorators/#sqlalchemy-transaction-decorators">SQLAlchemy Decorators</a> — Atomic transaction usage</li>
+<li>BDD feature files — <a href="https://github.com/SyntaxArc/ArchiPy/blob/master/features/temporal_adapter.feature"><code>temporal_adapter.feature</code></a>, <a href="https://github.com/SyntaxArc/ArchiPy/blob/master/features/temporal_adapter_apm.feature"><code>temporal_adapter_apm.feature</code></a>, <a href="https://github.com/SyntaxArc/ArchiPy/blob/master/features/temporal_schedules_errors.feature"><code>temporal_schedules_errors.feature</code></a></li>
 <li><a href="../../../api_reference/adapters/temporal/">API Reference</a> — Full Temporal adapter API documentation</li>
 </ul>
 
@@ -4597,6 +5015,12 @@ reconfigured in-process (Temporal SDK limitation).</p>
 <script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
       </main>
       
         <footer class="md-footer">
@@ -4606,7 +5030,7 @@ reconfigured in-process (Temporal SDK limitation).</p>
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Copyright &copy; 2025 Hossein Nejati, Mehdi Einali
+      Copyright &copy; 2025-2026 Hossein Nejati, Mehdi Einali
     </div>
   
   
@@ -4648,10 +5072,10 @@ reconfigured in-process (Temporal SDK limitation).</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "toc.follow", "content.code.copy", "content.tabs.link", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.instant.prefetch", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.indexes", "toc.follow", "content.code.copy", "content.tabs.link", "content.action.edit", "navigation.top", "search.suggest", "search.highlight", "content.code.annotate", "content.tooltips"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
